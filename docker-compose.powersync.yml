@@ -67,12 +67,30 @@ services:
       - powersync-data:/data
     ports:
       - "${POWERSYNC_PORT:-6061}:${POWERSYNC_PORT:-6061}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.powersync-http.rule=Host(`sync.sitemap.live`)"
+      - "traefik.http.routers.powersync-http.entryPoints=http"
+      - "traefik.http.routers.powersync-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.powersync-https.rule=Host(`sync.sitemap.live`)"
+      - "traefik.http.routers.powersync-https.entryPoints=https"
+      - "traefik.http.routers.powersync-https.tls=true"
+      - "traefik.http.routers.powersync-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.powersync.loadbalancer.server.port=6061"
+    networks:
+      - default
+      - coolify
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6061/probes/liveness"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+networks:
+  coolify:
+    external: true
 
 volumes:
   powersync-data:

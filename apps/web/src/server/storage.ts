@@ -58,3 +58,14 @@ export async function uploadFile(
 
   return { filePath, signedUrl, fileSize: buffer.length }
 }
+
+/**
+ * Generate a signed URL for an existing file in object storage.
+ */
+export async function getFileUrl(filePath: string, expiresIn = 3600): Promise<string> {
+  return getSignedUrl(
+    s3,
+    new GetObjectCommand({ Bucket: bucket, Key: filePath }),
+    { expiresIn },
+  )
+}

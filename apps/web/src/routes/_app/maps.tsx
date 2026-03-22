@@ -109,13 +109,29 @@ function Maps() {
                 {maps.map((map) => (
                   <TableRow key={map.id}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Map className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{map.name}</span>
+                      <div className="flex items-center gap-3">
+                        {map.signedUrl && map.fileType === 'image' ? (
+                          <img
+                            src={map.signedUrl}
+                            alt={map.name}
+                            className="h-10 w-10 rounded object-cover border border-border"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded border border-border bg-muted">
+                            {map.fileType === 'pdf' ? (
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Map className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-medium">{map.name}</span>
+                          {map.description && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">{map.description}</p>
+                          )}
+                        </div>
                       </div>
-                      {map.description && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">{map.description}</p>
-                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {map.facilityName ? (
@@ -244,7 +260,21 @@ function Maps() {
                     params={map.projectId ? { projectId: map.projectId } : {}}
                     className="group flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent"
                   >
-                    <Map className="h-5 w-5 text-muted-foreground shrink-0" />
+                    {map.signedUrl && map.fileType === 'image' ? (
+                      <img
+                        src={map.signedUrl}
+                        alt={map.name}
+                        className="h-10 w-10 rounded object-cover border border-border shrink-0"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 items-center justify-center rounded border border-border bg-muted shrink-0">
+                        {map.fileType === 'pdf' ? (
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Map className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{map.name}</p>
                       {map.description && (

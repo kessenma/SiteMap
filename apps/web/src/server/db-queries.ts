@@ -3,6 +3,7 @@ import { db } from '#/db'
 import { projects, maps, mapMarkers, mapKeys, facilities } from '#/db/schema'
 import { desc, eq, count, asc } from 'drizzle-orm'
 import { getAuthSession } from './auth-middleware'
+import { getFileUrl } from './storage'
 
 export const getProjects = createServerFn({ method: 'GET' }).handler(async () => {
   await getAuthSession()
@@ -124,7 +125,14 @@ export const getMaps = createServerFn({ method: 'GET' }).handler(async () => {
     .leftJoin(facilities, eq(maps.facilityId, facilities.id))
     .orderBy(desc(maps.updatedAt))
 
-  return result
+  const mapsWithUrls = await Promise.all(
+    result.map(async (m) => ({
+      ...m,
+      signedUrl: m.fileUri ? await getFileUrl(m.fileUri) : null,
+    })),
+  )
+
+  return mapsWithUrls
 })
 
 export const getDashboardStats = createServerFn({ method: 'GET' }).handler(async () => {
