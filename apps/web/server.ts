@@ -82,12 +82,7 @@ async function start() {
 
       // Fall through to TanStack Start SSR handler
       const response = await handler.fetch(req)
-      if (response instanceof Response) return response
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-      })
+      return response
     },
   })
 

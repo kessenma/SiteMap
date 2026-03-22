@@ -18,7 +18,8 @@ const users = new Table({
   name: column.text,
   first_name: column.text,
   last_name: column.text,
-  role: column.text, // 'admin' | 'inspector' | 'viewer'
+  role: column.text, // 'admin' | 'operator' | 'technician'
+  image: column.text,
   created_at: column.text,
   updated_at: column.text,
 });
@@ -72,7 +73,10 @@ const map_keys = new Table(
     icon_name: column.text, // built-in icon name from lucide set
     icon_color: column.text, // hex color
     icon_shape: column.text, // 'circle' | 'square' | 'triangle' | 'diamond'
+    icon_type: column.text, // 'shape' | 'image' | 'drawn' | 'text' | 'lucide'
+    icon_text: column.text, // text/emoji content for 'text' type
     custom_icon_uri: column.text, // optional: user-uploaded custom icon
+    marker_size: column.text, // 'sm' | 'md' | 'lg' | 'xl'
     sort_order: column.integer,
     created_at: column.text,
     updated_at: column.text,
@@ -115,6 +119,136 @@ const marker_photos = new Table(
     created_at: column.text,
   },
   { indexes: { by_marker: ['marker_id'] } },
+);
+
+// ── Map Comments ──────────────────────────────────────────────────────
+
+const map_comments = new Table(
+  {
+    map_id: column.text,
+    x: column.real,
+    y: column.real,
+    content: column.text,
+    created_by: column.text,
+    resolved_at: column.text,
+    resolved_by: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { by_map: ['map_id'] } },
+);
+
+const comment_replies = new Table(
+  {
+    comment_id: column.text,
+    content: column.text,
+    created_by: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { by_comment: ['comment_id'] } },
+);
+
+const comment_reactions = new Table(
+  {
+    comment_id: column.text,
+    user_id: column.text,
+    emoji: column.text,
+    created_at: column.text,
+  },
+  { indexes: { by_comment: ['comment_id'] } },
+);
+
+const comment_photos = new Table(
+  {
+    comment_id: column.text,
+    file_uri: column.text,
+    file_name: column.text,
+    file_size: column.integer,
+    created_at: column.text,
+  },
+  { indexes: { by_comment: ['comment_id'] } },
+);
+
+// ── Map Paths ─────────────────────────────────────────────────────────
+
+const map_paths = new Table(
+  {
+    map_id: column.text,
+    label: column.text,
+    color: column.text,
+    stroke_width: column.real,
+    path_data: column.text, // JSON array of {x,y} points
+    created_by: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { by_map: ['map_id'] } },
+);
+
+// ── Location Lists ────────────────────────────────────────────────────
+
+const map_lists = new Table(
+  {
+    map_id: column.text,
+    name: column.text,
+    description: column.text,
+    created_by: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { by_map: ['map_id'] } },
+);
+
+const map_list_items = new Table(
+  {
+    list_id: column.text,
+    x: column.real,
+    y: column.real,
+    label: column.text,
+    description: column.text,
+    sort_order: column.integer,
+    status: column.text, // 'pending' | 'in_progress' | 'completed'
+    completed_by: column.text,
+    completed_at: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { by_list: ['list_id'] } },
+);
+
+const list_item_photos = new Table(
+  {
+    list_item_id: column.text,
+    file_uri: column.text,
+    file_name: column.text,
+    file_size: column.integer,
+    caption: column.text,
+    created_at: column.text,
+  },
+  { indexes: { by_list_item: ['list_item_id'] } },
+);
+
+// ── User Facilities & Teammates ──────────────────────────────────────
+
+const user_facilities = new Table(
+  {
+    user_id: column.text,
+    facility_id: column.text,
+    created_at: column.text,
+  },
+  { indexes: { by_user: ['user_id'], by_facility: ['facility_id'] } },
+);
+
+const teammates = new Table(
+  {
+    user_id: column.text,
+    teammate_id: column.text,
+    role: column.text, // 'team_member' | 'manager'
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { by_user: ['user_id'], by_teammate: ['teammate_id'] } },
 );
 
 /**
@@ -174,6 +308,16 @@ export const AppSchema = new Schema({
   map_keys,
   map_markers,
   marker_photos,
+  map_comments,
+  comment_replies,
+  comment_reactions,
+  comment_photos,
+  map_paths,
+  map_lists,
+  map_list_items,
+  list_item_photos,
+  user_facilities,
+  teammates,
   // Local-only tables
   file_upload_queue,
   media_cache,
@@ -186,6 +330,16 @@ export type MapRecord = Database['maps'];
 export type MapKeyRecord = Database['map_keys'];
 export type MapMarkerRecord = Database['map_markers'];
 export type MarkerPhotoRecord = Database['marker_photos'];
+export type MapCommentRecord = Database['map_comments'];
+export type CommentReplyRecord = Database['comment_replies'];
+export type CommentReactionRecord = Database['comment_reactions'];
+export type CommentPhotoRecord = Database['comment_photos'];
+export type MapPathRecord = Database['map_paths'];
+export type MapListRecord = Database['map_lists'];
+export type MapListItemRecord = Database['map_list_items'];
+export type ListItemPhotoRecord = Database['list_item_photos'];
 export type UserRecord = Database['users'];
+export type UserFacilityRecord = Database['user_facilities'];
+export type TeammateRecord = Database['teammates'];
 export type FileUploadQueueRecord = Database['file_upload_queue'];
 export type MediaCacheRecord = Database['media_cache'];

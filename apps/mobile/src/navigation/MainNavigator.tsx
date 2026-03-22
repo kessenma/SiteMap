@@ -3,13 +3,16 @@ import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Map, Database, ClipboardList, Bell } from 'lucide-react-native';
+import { Map, Database, ClipboardList, Bell, User } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsTablet } from '../hooks/useIsTablet';
+import { TabletSidebar } from '../components/navigation/TabletNavigation';
 import MapScreen from '../screens/MapScreen';
 import DataScreen from '../screens/DataScreen';
 import TasksScreen from '../screens/TasksScreen';
 import AlertsScreen from '../screens/AlertsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import AddMapScreen from '../screens/AddMapScreen';
 import AddFacilityScreen from '../screens/AddFacilityScreen';
 import MapViewerScreen from '../screens/MapViewerScreen';
@@ -32,6 +35,7 @@ export type TabParamList = {
   Data: undefined;
   Tasks: undefined;
   Alerts: undefined;
+  Profile: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -39,9 +43,11 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 function HomeTabs() {
   const { colors } = useTheme();
+  const isTablet = useIsTablet();
 
   return (
     <Tab.Navigator
+      tabBar={isTablet ? (props) => <TabletSidebar {...props} /> : undefined}
       screenOptions={{
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
         tabBarActiveTintColor: colors.primary,
@@ -80,6 +86,14 @@ function HomeTabs() {
         options={{
           title: 'Alerts',
           tabBarIcon: ({ color, size }) => <Bell color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
     </Tab.Navigator>

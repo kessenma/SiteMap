@@ -5,7 +5,11 @@ import {
   userRoleEnum,
   fileTypeEnum,
   iconShapeEnum,
+  iconTypeEnum,
+  markerSizeEnum,
   markerStatusEnum,
+  reactionEmojiEnum,
+  listItemStatusEnum,
   devicePlatformEnum,
   deviceEnvironmentEnum,
   teammateRoleEnum,
@@ -138,7 +142,10 @@ export const mapKeys = pgTable(TABLE_NAMES.mapKeys, {
   iconName: text(COLUMNS.mapKeys.iconName).notNull().default(''),
   iconColor: text(COLUMNS.mapKeys.iconColor).notNull().default('#3B82F6'),
   iconShape: text(COLUMNS.mapKeys.iconShape, { enum: iconShapeEnum.options }).notNull().default('circle'),
+  iconType: text(COLUMNS.mapKeys.iconType, { enum: iconTypeEnum.options }).notNull().default('shape'),
+  iconText: text(COLUMNS.mapKeys.iconText),
   customIconUri: text(COLUMNS.mapKeys.customIconUri),
+  markerSize: text(COLUMNS.mapKeys.markerSize, { enum: markerSizeEnum.options }).notNull().default('md'),
   sortOrder: integer(COLUMNS.mapKeys.sortOrder).notNull().default(0),
   createdAt: timestamp(COLUMNS.mapKeys.createdAt, { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp(COLUMNS.mapKeys.updatedAt, { withTimezone: true }).notNull().defaultNow(),
@@ -218,4 +225,113 @@ export const teammates = pgTable(TABLE_NAMES.teammates, {
   index('idx_teammates_user_id').on(table.userId),
   index('idx_teammates_teammate_id').on(table.teammateId),
   uniqueIndex('idx_teammates_unique').on(table.userId, table.teammateId),
+])
+
+// ── Map Comments ──────────────────────────────────────────────────────
+
+export const mapComments = pgTable(TABLE_NAMES.mapComments, {
+  id: uuid(COLUMNS.mapComments.id).primaryKey().defaultRandom(),
+  mapId: uuid(COLUMNS.mapComments.mapId).notNull().references(() => maps.id, { onDelete: 'cascade' }),
+  x: real(COLUMNS.mapComments.x).notNull().default(0),
+  y: real(COLUMNS.mapComments.y).notNull().default(0),
+  content: text(COLUMNS.mapComments.content).notNull().default(''),
+  createdBy: text(COLUMNS.mapComments.createdBy).references(() => users.id),
+  resolvedAt: timestamp(COLUMNS.mapComments.resolvedAt, { withTimezone: true }),
+  resolvedBy: text(COLUMNS.mapComments.resolvedBy).references(() => users.id),
+  createdAt: timestamp(COLUMNS.mapComments.createdAt, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(COLUMNS.mapComments.updatedAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_map_comments_map_id').on(table.mapId),
+])
+
+export const commentReplies = pgTable(TABLE_NAMES.commentReplies, {
+  id: uuid(COLUMNS.commentReplies.id).primaryKey().defaultRandom(),
+  commentId: uuid(COLUMNS.commentReplies.commentId).notNull().references(() => mapComments.id, { onDelete: 'cascade' }),
+  content: text(COLUMNS.commentReplies.content).notNull().default(''),
+  createdBy: text(COLUMNS.commentReplies.createdBy).references(() => users.id),
+  createdAt: timestamp(COLUMNS.commentReplies.createdAt, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(COLUMNS.commentReplies.updatedAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_comment_replies_comment_id').on(table.commentId),
+])
+
+export const commentReactions = pgTable(TABLE_NAMES.commentReactions, {
+  id: uuid(COLUMNS.commentReactions.id).primaryKey().defaultRandom(),
+  commentId: uuid(COLUMNS.commentReactions.commentId).notNull().references(() => mapComments.id, { onDelete: 'cascade' }),
+  userId: text(COLUMNS.commentReactions.userId).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  emoji: text(COLUMNS.commentReactions.emoji, { enum: reactionEmojiEnum.options }).notNull(),
+  createdAt: timestamp(COLUMNS.commentReactions.createdAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_comment_reactions_comment_id').on(table.commentId),
+  uniqueIndex('idx_comment_reactions_unique').on(table.commentId, table.userId, table.emoji),
+])
+
+export const commentPhotos = pgTable(TABLE_NAMES.commentPhotos, {
+  id: uuid(COLUMNS.commentPhotos.id).primaryKey().defaultRandom(),
+  commentId: uuid(COLUMNS.commentPhotos.commentId).notNull().references(() => mapComments.id, { onDelete: 'cascade' }),
+  fileUri: text(COLUMNS.commentPhotos.fileUri).notNull().default(''),
+  fileName: text(COLUMNS.commentPhotos.fileName).notNull().default(''),
+  fileSize: integer(COLUMNS.commentPhotos.fileSize).notNull().default(0),
+  createdAt: timestamp(COLUMNS.commentPhotos.createdAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_comment_photos_comment_id').on(table.commentId),
+])
+
+// ── Map Paths ─────────────────────────────────────────────────────────
+
+export const mapPaths = pgTable(TABLE_NAMES.mapPaths, {
+  id: uuid(COLUMNS.mapPaths.id).primaryKey().defaultRandom(),
+  mapId: uuid(COLUMNS.mapPaths.mapId).notNull().references(() => maps.id, { onDelete: 'cascade' }),
+  label: text(COLUMNS.mapPaths.label).notNull().default(''),
+  color: text(COLUMNS.mapPaths.color).notNull().default('#3B82F6'),
+  strokeWidth: real(COLUMNS.mapPaths.strokeWidth).notNull().default(2),
+  pathData: text(COLUMNS.mapPaths.pathData).notNull().default('[]'),
+  createdBy: text(COLUMNS.mapPaths.createdBy).references(() => users.id),
+  createdAt: timestamp(COLUMNS.mapPaths.createdAt, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(COLUMNS.mapPaths.updatedAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_map_paths_map_id').on(table.mapId),
+])
+
+// ── Location Lists ────────────────────────────────────────────────────
+
+export const mapLists = pgTable(TABLE_NAMES.mapLists, {
+  id: uuid(COLUMNS.mapLists.id).primaryKey().defaultRandom(),
+  mapId: uuid(COLUMNS.mapLists.mapId).notNull().references(() => maps.id, { onDelete: 'cascade' }),
+  name: text(COLUMNS.mapLists.name).notNull(),
+  description: text(COLUMNS.mapLists.description).notNull().default(''),
+  createdBy: text(COLUMNS.mapLists.createdBy).references(() => users.id),
+  createdAt: timestamp(COLUMNS.mapLists.createdAt, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(COLUMNS.mapLists.updatedAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_map_lists_map_id').on(table.mapId),
+])
+
+export const mapListItems = pgTable(TABLE_NAMES.mapListItems, {
+  id: uuid(COLUMNS.mapListItems.id).primaryKey().defaultRandom(),
+  listId: uuid(COLUMNS.mapListItems.listId).notNull().references(() => mapLists.id, { onDelete: 'cascade' }),
+  x: real(COLUMNS.mapListItems.x).notNull().default(0),
+  y: real(COLUMNS.mapListItems.y).notNull().default(0),
+  label: text(COLUMNS.mapListItems.label).notNull().default(''),
+  description: text(COLUMNS.mapListItems.description).notNull().default(''),
+  sortOrder: integer(COLUMNS.mapListItems.sortOrder).notNull().default(0),
+  status: text(COLUMNS.mapListItems.status, { enum: listItemStatusEnum.options }).notNull().default('pending'),
+  completedBy: text(COLUMNS.mapListItems.completedBy).references(() => users.id),
+  completedAt: timestamp(COLUMNS.mapListItems.completedAt, { withTimezone: true }),
+  createdAt: timestamp(COLUMNS.mapListItems.createdAt, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(COLUMNS.mapListItems.updatedAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_map_list_items_list_id').on(table.listId),
+])
+
+export const listItemPhotos = pgTable(TABLE_NAMES.listItemPhotos, {
+  id: uuid(COLUMNS.listItemPhotos.id).primaryKey().defaultRandom(),
+  listItemId: uuid(COLUMNS.listItemPhotos.listItemId).notNull().references(() => mapListItems.id, { onDelete: 'cascade' }),
+  fileUri: text(COLUMNS.listItemPhotos.fileUri).notNull().default(''),
+  fileName: text(COLUMNS.listItemPhotos.fileName).notNull().default(''),
+  fileSize: integer(COLUMNS.listItemPhotos.fileSize).notNull().default(0),
+  caption: text(COLUMNS.listItemPhotos.caption).notNull().default(''),
+  createdAt: timestamp(COLUMNS.listItemPhotos.createdAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_list_item_photos_list_item_id').on(table.listItemId),
 ])

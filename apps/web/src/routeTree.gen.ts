@@ -17,6 +17,7 @@ import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AppUpdatesRouteImport } from './routes/_app/updates'
 import { Route as AppProjectsRouteImport } from './routes/_app/projects'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppMapsRouteImport } from './routes/_app/maps'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
@@ -62,6 +63,11 @@ const AppProjectsRoute = AppProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMapsRoute = AppMapsRouteImport.update({
   id: '/maps',
   path: '/maps',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AppAdminRoute
   '/dashboard': typeof AppDashboardRoute
   '/maps': typeof AppMapsRouteWithChildren
+  '/profile': typeof AppProfileRoute
   '/projects': typeof AppProjectsRouteWithChildren
   '/updates': typeof AppUpdatesRoute
   '/login': typeof AuthLoginRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/admin': typeof AppAdminRoute
   '/dashboard': typeof AppDashboardRoute
+  '/profile': typeof AppProfileRoute
   '/projects': typeof AppProjectsRouteWithChildren
   '/updates': typeof AppUpdatesRoute
   '/login': typeof AuthLoginRoute
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_app/admin': typeof AppAdminRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/maps': typeof AppMapsRouteWithChildren
+  '/_app/profile': typeof AppProfileRoute
   '/_app/projects': typeof AppProjectsRouteWithChildren
   '/_app/updates': typeof AppUpdatesRoute
   '/_auth/login': typeof AuthLoginRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/maps'
+    | '/profile'
     | '/projects'
     | '/updates'
     | '/login'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/dashboard'
+    | '/profile'
     | '/projects'
     | '/updates'
     | '/login'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_app/admin'
     | '/_app/dashboard'
     | '/_app/maps'
+    | '/_app/profile'
     | '/_app/projects'
     | '/_app/updates'
     | '/_auth/login'
@@ -246,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof AppProjectsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/maps': {
@@ -322,6 +341,7 @@ interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppMapsRoute: typeof AppMapsRouteWithChildren
+  AppProfileRoute: typeof AppProfileRoute
   AppProjectsRoute: typeof AppProjectsRouteWithChildren
   AppUpdatesRoute: typeof AppUpdatesRoute
 }
@@ -330,6 +350,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppMapsRoute: AppMapsRouteWithChildren,
+  AppProfileRoute: AppProfileRoute,
   AppProjectsRoute: AppProjectsRouteWithChildren,
   AppUpdatesRoute: AppUpdatesRoute,
 }

@@ -25,6 +25,23 @@ streams:
     priority: 1
     query: SELECT * FROM projects
 
+  # User's facilities and teammates
+  user_relations:
+    auto_subscribe: true
+    priority: 1
+    queries:
+      - SELECT * FROM user_facilities WHERE user_id = auth.user_id()
+      - SELECT * FROM teammates WHERE user_id = auth.user_id()
+
+  # Teammate profiles — sync user records for teammates so names/avatars display offline
+  teammate_profiles:
+    auto_subscribe: true
+    priority: 2
+    query: |
+      SELECT u.* FROM users u
+      INNER JOIN teammates t ON u.id = t.teammate_id
+      WHERE t.user_id = auth.user_id()
+
   # Maps, keys, markers, photos — all synced globally
   # Grouped into one stream to keep bucket count low
   project_data:
@@ -35,3 +52,11 @@ streams:
       - SELECT * FROM map_keys
       - SELECT * FROM map_markers
       - SELECT * FROM marker_photos
+      - SELECT * FROM map_comments
+      - SELECT * FROM comment_replies
+      - SELECT * FROM comment_reactions
+      - SELECT * FROM comment_photos
+      - SELECT * FROM map_paths
+      - SELECT * FROM map_lists
+      - SELECT * FROM map_list_items
+      - SELECT * FROM list_item_photos
