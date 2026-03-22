@@ -20,6 +20,60 @@ function apiMiddleware(): Plugin {
     name: 'api-middleware',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
+        if (req.url && !req.url.startsWith('/@') && !req.url.startsWith('/node_modules') && !req.url.startsWith('/src/') && !req.url.includes('?v=')) {
+          let logUrl = req.url
+          if (logUrl.startsWith('/_serverFn/')) {
+            try {
+              const decoded = JSON.parse(atob(logUrl.slice('/_serverFn/'.length).replace(/-/g, '+').replace(/_/g, '/')))
+              logUrl = `/_serverFn/${decoded.export?.split('_')[0] || decoded.export || logUrl}`
+            } catch {}
+          }
+          console.log(`[${req.method}] ${logUrl}`);
+        }
+        // Handle file proxy (GET /api/files?path=...)
+        if (req.url?.startsWith('/api/files') && req.method === 'GET') {
+          const protocol = 'http'
+          const host = req.headers.host || 'localhost:3000'
+          const url = new URL(req.url, `${protocol}://${host}`)
+          const headers = new Headers()
+          for (const [key, val] of Object.entries(req.headers)) {
+            if (val) headers.set(key, Array.isArray(val) ? val.join(', ') : val)
+          }
+
+          const request = new Request(url.toString(), { method: 'GET', headers })
+
+          try {
+            const { handleFileProxy } = await server.ssrLoadModule('./src/server/file-proxy.ts')
+            const response = await handleFileProxy(request)
+            res.statusCode = response.status
+            response.headers.forEach((value: string, key: string) => {
+              res.setHeader(key, value)
+            })
+            if (response.body) {
+              const reader = (response.body as ReadableStream).getReader()
+              const pump = async () => {
+                while (true) {
+                  const { done, value } = await reader.read()
+                  if (done) break
+                  res.write(value)
+                }
+                res.end()
+              }
+              pump().catch((err) => {
+                console.error('File proxy stream error:', err)
+                res.end()
+              })
+            } else {
+              res.end(await response.text())
+            }
+          } catch (err) {
+            console.error('File proxy middleware error:', err)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'File proxy failed' }))
+          }
+          return
+        }
+
         // Handle file uploads
         if (req.url === '/api/upload' && req.method === 'POST') {
           const protocol = 'http'

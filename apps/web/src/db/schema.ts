@@ -8,6 +8,7 @@ import {
   markerStatusEnum,
   devicePlatformEnum,
   deviceEnvironmentEnum,
+  teammateRoleEnum,
 } from '@sitemap/shared/schema'
 
 export const users = pgTable(TABLE_NAMES.users, {
@@ -193,4 +194,28 @@ export const pushDevices = pgTable(TABLE_NAMES.pushDevices, {
   index('idx_push_devices_user_active').on(table.userId, table.isActive),
   index('idx_push_devices_token').on(table.token),
   uniqueIndex('push_devices_token_platform_env_unique').on(table.token, table.platform, table.environment),
+])
+
+export const userFacilities = pgTable(TABLE_NAMES.userFacilities, {
+  id: uuid(COLUMNS.userFacilities.id).primaryKey().defaultRandom(),
+  userId: text(COLUMNS.userFacilities.userId).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  facilityId: uuid(COLUMNS.userFacilities.facilityId).notNull().references(() => facilities.id, { onDelete: 'cascade' }),
+  createdAt: timestamp(COLUMNS.userFacilities.createdAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_user_facilities_user_id').on(table.userId),
+  index('idx_user_facilities_facility_id').on(table.facilityId),
+  uniqueIndex('idx_user_facilities_unique').on(table.userId, table.facilityId),
+])
+
+export const teammates = pgTable(TABLE_NAMES.teammates, {
+  id: uuid(COLUMNS.teammates.id).primaryKey().defaultRandom(),
+  userId: text(COLUMNS.teammates.userId).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  teammateId: text(COLUMNS.teammates.teammateId).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  role: text(COLUMNS.teammates.role, { enum: teammateRoleEnum.options }).notNull().default('team_member'),
+  createdAt: timestamp(COLUMNS.teammates.createdAt, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(COLUMNS.teammates.updatedAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_teammates_user_id').on(table.userId),
+  index('idx_teammates_teammate_id').on(table.teammateId),
+  uniqueIndex('idx_teammates_unique').on(table.userId, table.teammateId),
 ])

@@ -125,15 +125,74 @@ export const getMaps = createServerFn({ method: 'GET' }).handler(async () => {
     .leftJoin(facilities, eq(maps.facilityId, facilities.id))
     .orderBy(desc(maps.updatedAt))
 
-  const mapsWithUrls = await Promise.all(
-    result.map(async (m) => ({
-      ...m,
-      signedUrl: m.fileUri ? await getFileUrl(m.fileUri) : null,
-    })),
-  )
+  const mapsWithUrls = result.map((m) => ({
+    ...m,
+    signedUrl: m.fileUri ? `/api/files?path=${encodeURIComponent(m.fileUri)}` : null,
+  }))
 
   return mapsWithUrls
 })
+
+export const getMap = createServerFn({ method: 'GET' })
+  .inputValidator((data: { mapId: string }) => data)
+  .handler(async ({ data }) => {
+    await getAuthSession()
+
+    const [map] = await db
+      .select({
+        id: maps.id,
+        name: maps.name,
+        description: maps.description,
+        fileType: maps.fileType,
+        fileUri: maps.fileUri,
+        fileName: maps.fileName,
+        fileSize: maps.fileSize,
+        width: maps.width,
+        height: maps.height,
+        createdAt: maps.createdAt,
+        updatedAt: maps.updatedAt,
+        facilityId: facilities.id,
+        facilityName: facilities.name,
+        projectId: projects.id,
+        projectName: projects.name,
+      })
+      .from(maps)
+      .leftJoin(projects, eq(maps.projectId, projects.id))
+      .leftJoin(facilities, eq(maps.facilityId, facilities.id))
+      .where(eq(maps.id, data.mapId))
+      .limit(1)
+
+    if (!map) throw new Error('Map not found')
+
+    const keys = await db
+      .select()
+      .from(mapKeys)
+      .where(eq(mapKeys.mapId, data.mapId))
+      .orderBy(asc(mapKeys.sortOrder))
+
+    const markers = await db
+      .select({
+        id: mapMarkers.id,
+        keyId: mapMarkers.keyId,
+        x: mapMarkers.x,
+        y: mapMarkers.y,
+        label: mapMarkers.label,
+        description: mapMarkers.description,
+        status: mapMarkers.status,
+        createdAt: mapMarkers.createdAt,
+        updatedAt: mapMarkers.updatedAt,
+      })
+      .from(mapMarkers)
+      .where(eq(mapMarkers.mapId, data.mapId))
+      .orderBy(desc(mapMarkers.updatedAt))
+
+    return {
+      ...map,
+      signedUrl: map.fileUri ? `/api/files?path=${encodeURIComponent(map.fileUri)}` : null,
+      keys,
+      markers,
+    }
+  })
 
 export const getDashboardStats = createServerFn({ method: 'GET' }).handler(async () => {
   await getAuthSession()

@@ -81,5 +81,6 @@ export const auth = betterAuth({
   trustedOrigins: [
     'http://localhost:3000',
     process.env.PROD_API_URL || 'https://sitemap.yourdomain.com',
+    'sitemap-mobile://', // React Native mobile app
   ],
 })

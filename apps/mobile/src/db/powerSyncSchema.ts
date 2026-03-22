@@ -117,6 +117,55 @@ const marker_photos = new Table(
   { indexes: { by_marker: ['marker_id'] } },
 );
 
+/**
+ * Local-Only Tables — Not synced, stored only on device
+ */
+
+// File upload queue — pending file uploads to S3 when connectivity is restored
+const file_upload_queue = new Table(
+  {
+    // Reference to the synced record that owns this file
+    table_name: column.text, // 'maps' | 'marker_photos'
+    record_id: column.text, // UUID of the owning record
+    column_name: column.text, // 'file_uri' — the column to update after upload
+    // Local file info
+    local_uri: column.text, // device file path
+    file_name: column.text,
+    mime_type: column.text, // e.g. 'image/jpeg', 'application/pdf'
+    folder: column.text, // S3 folder, e.g. 'maps', 'marker-photos'
+    // Status tracking
+    status: column.text, // 'pending' | 'uploading' | 'failed'
+    retry_count: column.integer,
+    error: column.text,
+    created_at: column.text,
+    attempted_at: column.text,
+  },
+  {
+    localOnly: true,
+    indexes: {
+      by_status: ['status'],
+      by_record: ['table_name', 'record_id'],
+    },
+  },
+);
+
+// Media cache — downloaded remote files cached locally for offline viewing
+const media_cache = new Table(
+  {
+    // id = the S3 object key (used as lookup key)
+    local_path: column.text, // cached file path on device
+    content_type: column.text, // MIME type
+    file_size: column.integer, // original file size in bytes
+    cached_at: column.text, // ISO timestamp
+  },
+  {
+    localOnly: true,
+    indexes: {
+      by_cached_at: ['cached_at'],
+    },
+  },
+);
+
 export const AppSchema = new Schema({
   users,
   facilities,
@@ -125,6 +174,9 @@ export const AppSchema = new Schema({
   map_keys,
   map_markers,
   marker_photos,
+  // Local-only tables
+  file_upload_queue,
+  media_cache,
 });
 
 export type Database = (typeof AppSchema)['types'];
@@ -135,3 +187,5 @@ export type MapKeyRecord = Database['map_keys'];
 export type MapMarkerRecord = Database['map_markers'];
 export type MarkerPhotoRecord = Database['marker_photos'];
 export type UserRecord = Database['users'];
+export type FileUploadQueueRecord = Database['file_upload_queue'];
+export type MediaCacheRecord = Database['media_cache'];

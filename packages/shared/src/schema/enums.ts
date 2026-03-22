@@ -11,3 +11,6 @@ export type IconShape = z.infer<typeof iconShapeEnum>;
 
 export const fileTypeEnum = z.enum(['pdf', 'image']);
 export type FileType = z.infer<typeof fileTypeEnum>;
+
+export const teammateRoleEnum = z.enum(['team_member', 'manager']);
+export type TeammateRole = z.infer<typeof teammateRoleEnum>;

@@ -20,7 +20,9 @@ import { Route as AppProjectsRouteImport } from './routes/_app/projects'
 import { Route as AppMapsRouteImport } from './routes/_app/maps'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppMapsIndexRouteImport } from './routes/_app/maps.index'
 import { Route as AppProjectsProjectIdRouteImport } from './routes/_app/projects.$projectId'
+import { Route as AppMapsMapIdRouteImport } from './routes/_app/maps.$mapId'
 
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
@@ -75,10 +77,20 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMapsIndexRoute = AppMapsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppMapsRoute,
+} as any)
 const AppProjectsProjectIdRoute = AppProjectsProjectIdRouteImport.update({
   id: '/$projectId',
   path: '/$projectId',
   getParentRoute: () => AppProjectsRoute,
+} as any)
+const AppMapsMapIdRoute = AppMapsMapIdRouteImport.update({
+  id: '/$mapId',
+  path: '/$mapId',
+  getParentRoute: () => AppMapsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -86,24 +98,27 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AppAdminRoute
   '/dashboard': typeof AppDashboardRoute
-  '/maps': typeof AppMapsRoute
+  '/maps': typeof AppMapsRouteWithChildren
   '/projects': typeof AppProjectsRouteWithChildren
   '/updates': typeof AppUpdatesRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
+  '/maps/$mapId': typeof AppMapsMapIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/maps/': typeof AppMapsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AppAdminRoute
   '/dashboard': typeof AppDashboardRoute
-  '/maps': typeof AppMapsRoute
   '/projects': typeof AppProjectsRouteWithChildren
   '/updates': typeof AppUpdatesRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
+  '/maps/$mapId': typeof AppMapsMapIdRoute
   '/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/maps': typeof AppMapsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,12 +128,14 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/_app/admin': typeof AppAdminRoute
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/maps': typeof AppMapsRoute
+  '/_app/maps': typeof AppMapsRouteWithChildren
   '/_app/projects': typeof AppProjectsRouteWithChildren
   '/_app/updates': typeof AppUpdatesRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
+  '/_app/maps/$mapId': typeof AppMapsMapIdRoute
   '/_app/projects/$projectId': typeof AppProjectsProjectIdRoute
+  '/_app/maps/': typeof AppMapsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,19 +149,22 @@ export interface FileRouteTypes {
     | '/updates'
     | '/login'
     | '/signup'
+    | '/maps/$mapId'
     | '/projects/$projectId'
+    | '/maps/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/admin'
     | '/dashboard'
-    | '/maps'
     | '/projects'
     | '/updates'
     | '/login'
     | '/signup'
+    | '/maps/$mapId'
     | '/projects/$projectId'
+    | '/maps'
   id:
     | '__root__'
     | '/'
@@ -158,7 +178,9 @@ export interface FileRouteTypes {
     | '/_app/updates'
     | '/_auth/login'
     | '/_auth/signup'
+    | '/_app/maps/$mapId'
     | '/_app/projects/$projectId'
+    | '/_app/maps/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -247,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/maps/': {
+      id: '/_app/maps/'
+      path: '/'
+      fullPath: '/maps/'
+      preLoaderRoute: typeof AppMapsIndexRouteImport
+      parentRoute: typeof AppMapsRoute
+    }
     '/_app/projects/$projectId': {
       id: '/_app/projects/$projectId'
       path: '/$projectId'
@@ -254,8 +283,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsProjectIdRouteImport
       parentRoute: typeof AppProjectsRoute
     }
+    '/_app/maps/$mapId': {
+      id: '/_app/maps/$mapId'
+      path: '/$mapId'
+      fullPath: '/maps/$mapId'
+      preLoaderRoute: typeof AppMapsMapIdRouteImport
+      parentRoute: typeof AppMapsRoute
+    }
   }
 }
+
+interface AppMapsRouteChildren {
+  AppMapsMapIdRoute: typeof AppMapsMapIdRoute
+  AppMapsIndexRoute: typeof AppMapsIndexRoute
+}
+
+const AppMapsRouteChildren: AppMapsRouteChildren = {
+  AppMapsMapIdRoute: AppMapsMapIdRoute,
+  AppMapsIndexRoute: AppMapsIndexRoute,
+}
+
+const AppMapsRouteWithChildren =
+  AppMapsRoute._addFileChildren(AppMapsRouteChildren)
 
 interface AppProjectsRouteChildren {
   AppProjectsProjectIdRoute: typeof AppProjectsProjectIdRoute
@@ -272,7 +321,7 @@ const AppProjectsRouteWithChildren = AppProjectsRoute._addFileChildren(
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
   AppDashboardRoute: typeof AppDashboardRoute
-  AppMapsRoute: typeof AppMapsRoute
+  AppMapsRoute: typeof AppMapsRouteWithChildren
   AppProjectsRoute: typeof AppProjectsRouteWithChildren
   AppUpdatesRoute: typeof AppUpdatesRoute
 }
@@ -280,7 +329,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
   AppDashboardRoute: AppDashboardRoute,
-  AppMapsRoute: AppMapsRoute,
+  AppMapsRoute: AppMapsRouteWithChildren,
   AppProjectsRoute: AppProjectsRouteWithChildren,
   AppUpdatesRoute: AppUpdatesRoute,
 }

@@ -12,4 +12,7 @@ export type {
   MarkerStatus,
   IconShape,
   FileType,
+  UserFacility,
+  Teammate,
+  TeammateRole,
 } from '../schema';

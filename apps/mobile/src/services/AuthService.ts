@@ -44,6 +44,9 @@ class AuthServiceImpl {
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      // better-auth requires Origin header for CSRF protection;
+      // React Native fetch doesn't send one by default
+      'Origin': 'sitemap-mobile://',
     };
     if (this.sessionCookie) {
       headers['Cookie'] = this.sessionCookie;

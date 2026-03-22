@@ -8,7 +8,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=@sitemap/web",
+    "dev:web": "pnpm --filter @sitemap/web dev",
     "dev:mobile": "turbo run dev --filter=mobile",
     "start:mobile": "pnpm --filter mobile run start",
     "start:mobile:device": "pnpm --filter mobile run start:device",

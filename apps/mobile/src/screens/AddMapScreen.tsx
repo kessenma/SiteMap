@@ -9,6 +9,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { ImagePlus, Building2, Check } from 'lucide-react-native';
+import { saveFileOfflineFirst } from '../services/FileService';
 import { useTheme } from '../contexts/ThemeContext';
 import { ScreenContainer } from '../components/ui/ScreenContainer';
 import { Input } from '../components/ui/Input';
@@ -72,6 +73,23 @@ export default function AddMapScreen() {
     try {
       const now = new Date().toISOString();
       const mapId = crypto.randomUUID();
+
+      const mimeType = imageName?.toLowerCase().endsWith('.png')
+        ? 'image/png'
+        : imageName?.toLowerCase().endsWith('.webp')
+          ? 'image/webp'
+          : 'image/jpeg';
+
+      // Copy to stable local path and enqueue S3 upload for when online
+      const { localPath } = await saveFileOfflineFirst({
+        localUri: imageUri,
+        fileName: imageName ?? 'map.jpg',
+        mimeType,
+        folder: 'maps',
+        tableName: 'maps',
+        recordId: mapId,
+      });
+
       await execute(
         `INSERT INTO maps (id, facility_id, name, description, file_type, file_uri, file_name, file_size, width, height, created_at, updated_at)
          VALUES (?, ?, ?, ?, 'image', ?, ?, ?, ?, ?, ?, ?)`,
@@ -80,7 +98,7 @@ export default function AddMapScreen() {
           selectedFacilityId,
           name.trim(),
           description.trim(),
-          imageUri,
+          localPath,
           imageName,
           imageSize,
           imageWidth,
@@ -91,8 +109,8 @@ export default function AddMapScreen() {
       );
 
       navigation.goBack();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save map. Please try again.');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save map. Please try again.');
     } finally {
       setSaving(false);
     }

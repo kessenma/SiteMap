@@ -12,6 +12,8 @@ export const TABLE_NAMES = {
   twoFactors: 'two_factors',
   passkeyCredentials: 'passkey_credentials',
   pushDevices: 'push_devices',
+  userFacilities: 'user_facilities',
+  teammates: 'teammates',
 } as const;
 
 export const COLUMNS = {
@@ -161,6 +163,20 @@ export const COLUMNS = {
     deviceModel: 'device_model',
     appVersion: 'app_version',
     buildNumber: 'build_number',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  },
+  userFacilities: {
+    id: 'id',
+    userId: 'user_id',
+    facilityId: 'facility_id',
+    createdAt: 'created_at',
+  },
+  teammates: {
+    id: 'id',
+    userId: 'user_id',
+    teammateId: 'teammate_id',
+    role: 'role',
     createdAt: 'created_at',
     updatedAt: 'updated_at',
   },

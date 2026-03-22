@@ -8,3 +8,5 @@ export * from './map-keys';
 export * from './map-markers';
 export * from './marker-photos';
 export * from './push-devices';
+export * from './user-facilities';
+export * from './teammates';

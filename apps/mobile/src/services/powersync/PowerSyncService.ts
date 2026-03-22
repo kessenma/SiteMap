@@ -1,7 +1,9 @@
 import { AbstractPowerSyncDatabase } from '@powersync/react-native';
 import { OPSqliteOpenFactory } from '@powersync/op-sqlite';
+import NetInfo from '@react-native-community/netinfo';
 import { AppSchema } from '../../db/powerSyncSchema';
 import { DB_CONFIG, API_CONFIG } from '../../config';
+import { processUploadQueue } from '../FileUploadQueue';
 
 let powerSyncInstance: AbstractPowerSyncDatabase | null = null;
 
@@ -77,6 +79,11 @@ export function createConnector(getToken: () => Promise<string>): PowerSyncConne
         }
 
         await transaction.complete();
+
+        // After syncing record metadata, process any queued file uploads
+        processUploadQueue().catch((err) =>
+          console.warn('[PowerSync] File upload queue error:', err),
+        );
       } catch (error) {
         console.error('[PowerSync] Upload error:', error);
         throw error;
@@ -96,6 +103,18 @@ export async function initializePowerSync(
 
   await db.init();
   await db.connect(connector);
+
+  // Process any queued file uploads when connectivity changes
+  NetInfo.addEventListener((state) => {
+    if (state.isConnected) {
+      processUploadQueue().catch((err) =>
+        console.warn('[PowerSync] File upload queue error on reconnect:', err),
+      );
+    }
+  });
+
+  // Process any pending uploads from a previous session
+  processUploadQueue().catch(() => {});
 
   console.log('[PowerSync] Connected and syncing');
   return db;

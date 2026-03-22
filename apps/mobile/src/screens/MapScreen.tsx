@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type GorhomBottomSheet from '@gorhom/bottom-sheet';
 import { MapPin, Building2, Plus, Map as MapIcon } from 'lucide-react-native';
+import { useFileUrl } from '../hooks/useFileUrl';
 import { useTheme } from '../contexts/ThemeContext';
 import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import { BottomSheet } from '../components/ui/BottomSheet';
@@ -76,13 +77,7 @@ export default function MapScreen() {
         })
       }
     >
-      {item.file_uri ? (
-        <Image source={{ uri: item.file_uri }} style={styles.cardImage} resizeMode="cover" />
-      ) : (
-        <View style={[styles.cardImagePlaceholder, { backgroundColor: colors.border }]}>
-          <MapPin color={colors.textSecondary} size={32} />
-        </View>
-      )}
+      <MapThumbnail fileUri={item.file_uri} style={styles.cardImage} placeholderStyle={styles.cardImagePlaceholder} />
       <CardHeader>
         <H2>{item.name}</H2>
       </CardHeader>
@@ -247,13 +242,7 @@ export default function MapScreen() {
                 });
               }}
             >
-              {item.file_uri ? (
-                <Image source={{ uri: item.file_uri }} style={styles.cardImage} resizeMode="cover" />
-              ) : (
-                <View style={[styles.cardImagePlaceholder, { backgroundColor: colors.border }]}>
-                  <MapPin color={colors.textSecondary} size={32} />
-                </View>
-              )}
+              <MapThumbnail fileUri={item.file_uri} style={styles.cardImage} placeholderStyle={styles.cardImagePlaceholder} />
               <CardHeader>
                 <H2>{item.name}</H2>
               </CardHeader>
@@ -267,6 +256,29 @@ export default function MapScreen() {
         )}
       </BottomSheet>
     </ScreenContainer>
+  );
+}
+
+function MapThumbnail({
+  fileUri,
+  style,
+  placeholderStyle,
+}: {
+  fileUri: string | null;
+  style: any;
+  placeholderStyle: any;
+}) {
+  const { colors } = useTheme();
+  const resolvedUri = useFileUrl(fileUri);
+
+  if (resolvedUri) {
+    return <Image source={{ uri: resolvedUri }} style={style} resizeMode="cover" />;
+  }
+
+  return (
+    <View style={[placeholderStyle, { backgroundColor: colors.border }]}>
+      <MapPin color={colors.textSecondary} size={32} />
+    </View>
   );
 }
 

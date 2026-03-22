@@ -16,6 +16,8 @@ import { pick } from '@react-native-documents/picker';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePowerSyncQuery, usePowerSyncMutation } from '../hooks/powersync/usePowerSync';
 import { useAuth } from '../contexts/AuthContext';
+import { saveFileOfflineFirst } from '../services/FileService';
+import { useFileUrl } from '../hooks/useFileUrl';
 import type { RootStackParamList } from '../navigation/MainNavigator';
 import type { MapRecord, MapKeyRecord, MapMarkerRecord } from '../db';
 
@@ -70,6 +72,22 @@ export default function MapViewerScreen() {
         const asset = result.assets[0];
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
+        const fileName = asset.fileName ?? 'map.jpg';
+        const mimeType = fileName.toLowerCase().endsWith('.png')
+          ? 'image/png'
+          : fileName.toLowerCase().endsWith('.webp')
+            ? 'image/webp'
+            : 'image/jpeg';
+
+        // Copy to stable local path and enqueue S3 upload
+        const { localPath } = await saveFileOfflineFirst({
+          localUri: asset.uri ?? '',
+          fileName,
+          mimeType,
+          folder: 'maps',
+          tableName: 'maps',
+          recordId: id,
+        });
 
         await execute(
           `INSERT INTO maps (id, project_id, name, description, file_type, file_uri, file_name, file_size, width, height, created_by, created_at, updated_at)
@@ -77,11 +95,11 @@ export default function MapViewerScreen() {
           [
             id,
             mapId,
-            asset.fileName ?? 'Untitled Map',
+            fileName,
             '',
             'image',
-            asset.uri ?? '',
-            asset.fileName ?? '',
+            localPath,
+            fileName,
             asset.fileSize ?? 0,
             asset.width ?? 0,
             asset.height ?? 0,
@@ -95,6 +113,7 @@ export default function MapViewerScreen() {
       }
     } catch (err) {
       console.error('Map upload error:', err);
+      Alert.alert('Upload Error', (err as any).message || 'Failed to upload map image.');
     }
   }, [mapId, user, execute, refreshMaps]);
 
@@ -105,10 +124,20 @@ export default function MapViewerScreen() {
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
 
+        // Copy to stable local path and enqueue S3 upload
+        const { localPath } = await saveFileOfflineFirst({
+          localUri: result.uri,
+          fileName: result.name ?? 'map.pdf',
+          mimeType: 'application/pdf',
+          folder: 'maps',
+          tableName: 'maps',
+          recordId: id,
+        });
+
         await execute(
           `INSERT INTO maps (id, project_id, name, description, file_type, file_uri, file_name, file_size, width, height, created_by, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, mapId, result.name ?? 'Untitled Map', '', 'pdf', result.uri, result.name ?? '', result.size ?? 0, 0, 0, user?.id ?? '', now, now],
+          [id, mapId, result.name ?? 'Untitled Map', '', 'pdf', localPath, result.name ?? '', result.size ?? 0, 0, 0, user?.id ?? '', now, now],
         );
         setActiveMapId(id);
         refreshMaps();
@@ -116,6 +145,7 @@ export default function MapViewerScreen() {
     } catch (err) {
       if ((err as any)?.code !== 'DOCUMENT_PICKER_CANCELED') {
         console.error('PDF upload error:', err);
+        Alert.alert('Upload Error', (err as any).message || 'Failed to upload PDF.');
       }
     }
   }, [mapId, user, execute, refreshMaps]);
@@ -250,17 +280,11 @@ export default function MapViewerScreen() {
         bouncesZoom
       >
         <TouchableOpacity activeOpacity={1} onPress={handleMapPress}>
-          {currentMap.file_type === 'image' && currentMap.file_uri ? (
-            <Image
-              source={{ uri: currentMap.file_uri }}
-              style={styles.mapImage}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={[styles.pdfPlaceholder, { borderColor: colors.border }]}>
-              <Text style={{ color: colors.textSecondary }}>PDF: {currentMap.file_name}</Text>
-            </View>
-          )}
+          <MapImageDisplay
+            fileType={currentMap.file_type}
+            fileUri={currentMap.file_uri}
+            fileName={currentMap.file_name}
+          />
 
           {/* Render markers */}
           {markers.map((marker) => {
@@ -289,6 +313,37 @@ export default function MapViewerScreen() {
           })}
         </TouchableOpacity>
       </ScrollView>
+    </View>
+  );
+}
+
+function MapImageDisplay({
+  fileType,
+  fileUri,
+  fileName,
+}: {
+  fileType: string | null;
+  fileUri: string | null;
+  fileName: string | null;
+}) {
+  const { colors } = useTheme();
+  const resolvedUri = useFileUrl(fileType === 'image' ? fileUri : null);
+
+  if (fileType === 'image' && resolvedUri) {
+    return (
+      <Image
+        source={{ uri: resolvedUri }}
+        style={styles.mapImage}
+        resizeMode="contain"
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.pdfPlaceholder, { borderColor: colors.border }]}>
+      <Text style={{ color: colors.textSecondary }}>
+        {fileType === 'pdf' ? `PDF: ${fileName}` : 'No image'}
+      </Text>
     </View>
   );
 }
