@@ -1,0 +1,37 @@
+# SiteMap PowerSync Sync Config — Sync Streams (edition 3)
+# Replaces legacy sync-rules.yaml
+
+config:
+  edition: 3
+
+streams:
+  # User's own profile — syncs automatically, scoped to authenticated user
+  user_profile:
+    auto_subscribe: true
+    priority: 1
+    query: |
+      SELECT * FROM users
+      WHERE id = auth.user_id()
+
+  # All facilities — every authenticated user gets all facilities
+  facilities:
+    auto_subscribe: true
+    priority: 1
+    query: SELECT * FROM facilities
+
+  # All projects — every authenticated user gets all projects
+  projects:
+    auto_subscribe: true
+    priority: 1
+    query: SELECT * FROM projects
+
+  # Maps, keys, markers, photos — all synced globally
+  # Grouped into one stream to keep bucket count low
+  project_data:
+    auto_subscribe: true
+    priority: 2
+    queries:
+      - SELECT * FROM maps
+      - SELECT * FROM map_keys
+      - SELECT * FROM map_markers
+      - SELECT * FROM marker_photos

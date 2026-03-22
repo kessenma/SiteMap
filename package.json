@@ -1,0 +1,31 @@
+{
+  "name": "sitemap-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@sitemap/web",
+    "dev:mobile": "turbo run dev --filter=mobile",
+    "start:mobile": "pnpm --filter mobile run start",
+    "start:mobile:device": "pnpm --filter mobile run start:device",
+    "ios": "pnpm --filter mobile run ios",
+    "android": "pnpm --filter mobile run android",
+    "lint": "turbo run lint",
+    "check-types": "turbo run check-types",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "eslint": "^9.20.1",
+    "prettier": "^3.4.2",
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@8.15.4",
+  "engines": {
+    "node": ">=22"
+  }
+}

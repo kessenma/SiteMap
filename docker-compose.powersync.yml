@@ -1,0 +1,79 @@
+version: "3.8"
+
+# Required environment variables:
+#   DATABASE_URL - PostgreSQL connection string (e.g., postgres://user:pass@host:port/db)
+#   JWT_SECRET - JWT signing secret (must match your API server)
+
+services:
+  powersync-cleanup:
+    image: postgres:17-alpine
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      echo 'Cleaning up PowerSync locks and connections...' &&
+
+      DB_URL=\"$DATABASE_URL\" &&
+      DB_URL_NO_PROTO=\"$${DB_URL#postgres://}\" &&
+      DB_URL_NO_PROTO=\"$${DB_URL_NO_PROTO#postgresql://}\" &&
+      USER_PASS=\"$${DB_URL_NO_PROTO%%@*}\" &&
+      DB_USER=\"$${USER_PASS%%:*}\" &&
+      DB_PASS=\"$${USER_PASS#*:}\" &&
+      HOST_PORT_DB=\"$${DB_URL_NO_PROTO#*@}\" &&
+      HOST_PORT=\"$${HOST_PORT_DB%%/*}\" &&
+      DB_HOST=\"$${HOST_PORT%%:*}\" &&
+      DB_PORT=\"$${HOST_PORT#*:}\" &&
+      DB_NAME=\"$${HOST_PORT_DB#*/}\" &&
+      DB_NAME=\"$${DB_NAME%%\\?*}\" &&
+
+      export PGPASSWORD=\"$$DB_PASS\" &&
+      echo \"Connecting to $$DB_HOST:$$DB_PORT as $$DB_USER...\" &&
+
+      psql -h \"$$DB_HOST\" -p \"$$DB_PORT\" -U \"$$DB_USER\" -d \"$$DB_NAME\" -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE application_name LIKE '%powersync%';\" &&
+      echo 'Waiting for connections to close...' &&
+      sleep 3 &&
+      psql -h \"$$DB_HOST\" -p \"$$DB_PORT\" -U \"$$DB_USER\" -d \"$$DB_NAME\" -c \"SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name LIKE '%powersync_sitemap%';\" 2>/dev/null || true &&
+      psql -h \"$$DB_HOST\" -p \"$$DB_PORT\" -U \"$$DB_USER\" -d \"$$DB_NAME\" -c \"UPDATE powersync.sync_rules SET state = 'STOPPED' WHERE state = 'ACTIVE';\" 2>/dev/null || true &&
+      psql -h \"$$DB_HOST\" -p \"$$DB_PORT\" -U \"$$DB_USER\" -d \"$$DB_NAME\" -c \"DELETE FROM powersync.locks;\" 2>/dev/null || true &&
+      echo 'Cleanup complete! Waiting for PostgreSQL to release resources...' &&
+      sleep 15 &&
+      echo 'Ready for PowerSync to start!'
+      "
+    restart: "no"
+
+  powersync:
+    depends_on:
+      powersync-cleanup:
+        condition: service_completed_successfully
+    build:
+      context: ./apps/powersync-server
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      POWERSYNC_PORT: ${POWERSYNC_PORT:-6061}
+      POWERSYNC_LOG_LEVEL: ${POWERSYNC_LOG_LEVEL:-info}
+      POWERSYNC_SLOT_NAME: ${POWERSYNC_SLOT_NAME:-powersync_sitemap_slot}
+      POWERSYNC_PUBLICATION: ${POWERSYNC_PUBLICATION:-powersync_sitemap_pub}
+      POWERSYNC_SYNC_RULES_PATH: /config/sync-rules.yaml
+      NODE_ENV: ${NODE_ENV:-production}
+    volumes:
+      - powersync-data:/data
+    ports:
+      - "${POWERSYNC_PORT:-6061}:${POWERSYNC_PORT:-6061}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6061/probes/liveness"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  powersync-data:
+    driver: local

@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+.turbo/
+.rock/
+
+# iOS
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+*.xcworkspace/xcuserdata/
+
+# Android
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+*.apk
+*.aab
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE & AI tools
+.idea/
+.vscode/
+.agents/
+.claude/
+.kiro/
+.trae/
+.mcp.json
+skills-lock.json
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PowerSync
+powersync-data/
+
+# Misc
+*.log
+*.tsbuildinfo

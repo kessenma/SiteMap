@@ -1,0 +1,110 @@
+// Single source of truth for all color hex values across web and mobile.
+
+export const palette = {
+  // Space Indigo - primary brand scale
+  indigo: {
+    50: '#E8EAF0',
+    100: '#C5CAD9',
+    200: '#9FA8C0',
+    300: '#7986A7',
+    400: '#5C6D95',
+    500: '#3F5483',
+    600: '#374A76',
+    700: '#2C3D64',
+    800: '#223052',
+    900: '#1B264F',
+    950: '#101733',
+  },
+  // French Blue - secondary brand scale
+  blue: {
+    50: '#E9EDF8',
+    100: '#C8D2ED',
+    200: '#A4B5E1',
+    300: '#8098D5',
+    400: '#6482CC',
+    500: '#496DC3',
+    600: '#4165BD',
+    700: '#375AB5',
+    800: '#2E50AD',
+    900: '#274690',
+    950: '#162A5C',
+  },
+  // Smart Blue - accent scale
+  smart: {
+    50: '#EDF0F6',
+    100: '#D2D9E9',
+    200: '#B4C0DA',
+    300: '#96A7CB',
+    400: '#8094C0',
+    500: '#6982B5',
+    600: '#6077AB',
+    700: '#576CA8',
+    800: '#4A5C8E',
+    900: '#3D4D75',
+    950: '#253050',
+  },
+  red: {
+    50: '#FEF2F2',
+    100: '#FEE2E2',
+    200: '#FECACA',
+    300: '#FCA5A5',
+    400: '#F87171',
+    500: '#EF4444',
+    600: '#DC2626',
+    700: '#B91C1C',
+    800: '#991B1B',
+    900: '#7F1D1D',
+    950: '#450A0A',
+  },
+  green: {
+    50: '#F0FDF4',
+    100: '#DCFCE7',
+    200: '#BBF7D0',
+    300: '#86EFAC',
+    400: '#4ADE80',
+    500: '#22C55E',
+    600: '#16A34A',
+    700: '#15803D',
+    800: '#166534',
+    900: '#14532D',
+    950: '#052E16',
+  },
+  amber: {
+    50: '#FFFBEB',
+    100: '#FEF3C7',
+    200: '#FDE68A',
+    300: '#FCD34D',
+    400: '#FBBF24',
+    500: '#F59E0B',
+    600: '#D97706',
+    700: '#B45309',
+    800: '#92400E',
+    900: '#78350F',
+    950: '#451A03',
+  },
+  // Graphite - neutral scale
+  grey: {
+    50: '#F5F3F5',
+    100: '#E8E6E8',
+    200: '#D4D2D4',
+    300: '#B8B5B8',
+    400: '#95929A',
+    500: '#6E6B72',
+    600: '#55525A',
+    700: '#413E45',
+    800: '#302B27',
+    900: '#1F1B18',
+    950: '#110E0C',
+  },
+} as const;
+
+export const brandColors = {
+  spaceIndigo: '#1B264F',
+  frenchBlue: '#274690',
+  smartBlue: '#576CA8',
+  graphite: '#302B27',
+  whiteSmoke: '#F5F3F5',
+} as const;
+
+export type Palette = typeof palette;
+export type BrandColors = typeof brandColors;

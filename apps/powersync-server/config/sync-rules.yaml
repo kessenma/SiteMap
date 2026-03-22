@@ -1,0 +1,44 @@
+# SiteMap PowerSync Sync Rules
+# Defines which data from PostgreSQL gets synced to mobile devices
+
+bucket_definitions:
+  # Per-user data bucket
+  user_data:
+    parameters:
+      - SELECT id as user_id FROM users
+    data:
+      # User's own profile
+      - SELECT id, email, name, role, created_at, updated_at
+        FROM users
+        WHERE id = bucket.user_id
+
+  # Project data - all members of a project see the same data
+  # Every authenticated user gets all projects they have access to
+  project_data:
+    parameters:
+      - SELECT 'all' as scope FROM users WHERE id = request.user_id()
+    data:
+      # All projects (access control enforced in-app)
+      - SELECT *
+        FROM projects
+        WHERE bucket.scope = 'all'
+
+      # All maps
+      - SELECT *
+        FROM maps
+        WHERE bucket.scope = 'all'
+
+      # All map keys (legend items)
+      - SELECT *
+        FROM map_keys
+        WHERE bucket.scope = 'all'
+
+      # All map markers
+      - SELECT *
+        FROM map_markers
+        WHERE bucket.scope = 'all'
+
+      # All marker photos metadata
+      - SELECT *
+        FROM marker_photos
+        WHERE bucket.scope = 'all'
