@@ -1,0 +1,38 @@
+# Gorush push notification gateway configuration
+# Docs: https://github.com/appleboy/gorush
+
+core:
+  enabled: true
+  port: "8088"
+  worker_num: 0       # 0 = use all CPU cores
+  queue_num: 8192
+  max_notification: 100
+
+# iOS Push Notifications via APNs
+# To set up:
+# 1. Go to Apple Developer > Keys > Create a new key with "Apple Push Notifications service (APNs)"
+# 2. Download the .p8 file
+# 3. Base64-encode it: cat AuthKey_XXXXXX.p8 | base64
+# 4. Set APNS_KEY_BASE64 env var with the base64 string
+# 5. Set APNS_KEY_ID to the Key ID from Apple Developer
+# 6. Set APNS_TEAM_ID to your Apple Developer Team ID
+ios:
+  enabled: true
+  key_path: "/keys/AuthKey.p8"
+  key_type: "p8"
+  key_id: ""          # Set via GORUSH_IOS_KEY_ID env var
+  team_id: ""         # Set via GORUSH_IOS_TEAM_ID env var
+  production: false   # Set to true for production APNs
+  max_retry: 3
+  max_concurrent_pushes: 100
+
+# Android Push Notifications via FCM
+# To set up:
+# 1. Go to Firebase Console > Project Settings > Service Accounts
+# 2. Generate a new private key (JSON file)
+# 3. Mount the JSON file at /keys/fcm-key.json
+android:
+  enabled: false
+  key_path: "/keys/fcm-key.json"
+  max_retry: 3
+  max_concurrent_pushes: 100

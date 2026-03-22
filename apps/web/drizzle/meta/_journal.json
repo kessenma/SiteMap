@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1774207813751,
+      "tag": "0000_smart_stark_industries",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774209589687,
+      "tag": "0001_legal_katie_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774214488241,
+      "tag": "0002_condemned_miek",
+      "breakpoints": true
+    }
+  ]
+}

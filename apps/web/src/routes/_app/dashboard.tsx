@@ -4,7 +4,7 @@ import { Badge } from '#/components/ui/badge'
 import { getDashboardStats, getRecentMarkers } from '#/server/db-queries'
 import { FolderOpen, MapPin, AlertTriangle, CheckCircle } from 'lucide-react'
 
-export const Route = createFileRoute('/dashboard')({
+export const Route = createFileRoute('/_app/dashboard')({
   loader: async () => {
     const [stats, recentMarkers] = await Promise.all([
       getDashboardStats(),

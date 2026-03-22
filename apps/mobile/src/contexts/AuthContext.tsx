@@ -1,66 +1,93 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { MMKV } from 'react-native-mmkv';
-import { AUTH_CONFIG } from '../config';
-
-let _storage: MMKV | null = null;
-function getStorage(): MMKV {
-  if (!_storage) {
-    _storage = new MMKV();
-  }
-  return _storage;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'admin' | 'inspector' | 'viewer';
-}
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { authService, type AuthUser } from '../services/AuthService';
+import { pushNotificationService } from '../services/PushNotificationService';
 
 interface AuthContextValue {
-  user: User | null;
-  token: string | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (user: User, token: string) => void;
-  logout: () => void;
-  getToken: () => Promise<string>;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<
+    { success: true } | { requiresTwoFactor: true } | { error: string }
+  >;
+  signup: (email: string, password: string, name: string, role: string) => Promise<
+    { success: true } | { error: string }
+  >;
+  verifyTotp: (code: string) => Promise<{ success: true } | { error: string }>;
+  logout: () => Promise<void>;
+  setUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = getStorage().getString(AUTH_CONFIG.STORAGE_KEYS.USER);
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [token, setToken] = useState<string | null>(() => {
-    return getStorage().getString(AUTH_CONFIG.STORAGE_KEYS.TOKEN) ?? null;
-  });
-
-  const login = useCallback((newUser: User, newToken: string) => {
-    getStorage().set(AUTH_CONFIG.STORAGE_KEYS.USER, JSON.stringify(newUser));
-    getStorage().set(AUTH_CONFIG.STORAGE_KEYS.TOKEN, newToken);
-    setUser(newUser);
-    setToken(newToken);
+  // Check for existing session on mount
+  useEffect(() => {
+    let mounted = true;
+    authService.getSession().then((sessionUser) => {
+      if (mounted && sessionUser) {
+        setUser(sessionUser);
+      }
+    }).finally(() => {
+      if (mounted) setIsLoading(false);
+    });
+    return () => { mounted = false; };
   }, []);
 
-  const logout = useCallback(() => {
-    getStorage().delete(AUTH_CONFIG.STORAGE_KEYS.USER);
-    getStorage().delete(AUTH_CONFIG.STORAGE_KEYS.TOKEN);
+  const login = useCallback(async (email: string, password: string) => {
+    const result = await authService.signIn(email, password);
+    if ('user' in result) {
+      setUser(result.user);
+      // Register for push notifications after successful login
+      pushNotificationService.initialize().catch(console.warn);
+      return { success: true as const };
+    }
+    if ('requiresTwoFactor' in result) {
+      return { requiresTwoFactor: true as const };
+    }
+    return result;
+  }, []);
+
+  const signup = useCallback(async (email: string, password: string, name: string, role: string) => {
+    const result = await authService.signUp(email, password, name, role);
+    if ('user' in result) {
+      setUser(result.user);
+      return { success: true as const };
+    }
+    return result;
+  }, []);
+
+  const verifyTotp = useCallback(async (code: string) => {
+    const result = await authService.verifyTotp(code);
+    if ('success' in result) {
+      // Refresh session after 2FA verification
+      const sessionUser = await authService.getSession();
+      if (sessionUser) setUser(sessionUser);
+      return { success: true as const };
+    }
+    return result;
+  }, []);
+
+  const logout = useCallback(async () => {
+    await pushNotificationService.unregisterDeviceToken().catch(console.warn);
+    await authService.signOut();
     setUser(null);
-    setToken(null);
-  }, []);
-
-  const getToken = useCallback(async (): Promise<string> => {
-    const t = getStorage().getString(AUTH_CONFIG.STORAGE_KEYS.TOKEN);
-    if (!t) throw new Error('No auth token available');
-    return t;
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated: !!user && !!token, login, logout, getToken }}
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
+        login,
+        signup,
+        verifyTotp,
+        logout,
+        setUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

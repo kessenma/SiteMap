@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#
 import { getRecentMarkers } from '#/server/db-queries'
 import { MapPin } from 'lucide-react'
 
-export const Route = createFileRoute('/updates')({
+export const Route = createFileRoute('/_app/updates')({
   loader: () => getRecentMarkers(),
   component: Updates,
 })

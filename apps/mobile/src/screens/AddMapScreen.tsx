@@ -5,17 +5,15 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
-  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { ImagePlus, Building2, Plus, Check } from 'lucide-react-native';
+import { ImagePlus, Building2, Check } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { ScreenContainer } from '../components/ui/ScreenContainer';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Body, Caption, H3 } from '../components/ui/Typography';
-import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import {
   usePowerSyncMutation,
   usePowerSyncQuery,
@@ -33,9 +31,6 @@ export default function AddMapScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
-  const [showNewFacility, setShowNewFacility] = useState(false);
-  const [newFacilityName, setNewFacilityName] = useState('');
-  const [newFacilityAddress, setNewFacilityAddress] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState<number | null>(null);
@@ -64,6 +59,10 @@ export default function AddMapScreen() {
       Alert.alert('Required', 'Please enter a map name.');
       return;
     }
+    if (!selectedFacilityId) {
+      Alert.alert('Required', 'Please select a facility.');
+      return;
+    }
     if (!imageUri) {
       Alert.alert('Required', 'Please upload a map image.');
       return;
@@ -72,24 +71,13 @@ export default function AddMapScreen() {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      let facilityId = selectedFacilityId;
-
-      // Create new facility if needed
-      if (showNewFacility && newFacilityName.trim()) {
-        facilityId = crypto.randomUUID();
-        await execute(
-          'INSERT INTO facilities (id, name, address, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-          [facilityId, newFacilityName.trim(), newFacilityAddress.trim(), now, now],
-        );
-      }
-
       const mapId = crypto.randomUUID();
       await execute(
         `INSERT INTO maps (id, facility_id, name, description, file_type, file_uri, file_name, file_size, width, height, created_at, updated_at)
          VALUES (?, ?, ?, ?, 'image', ?, ?, ?, ?, ?, ?, ?)`,
         [
           mapId,
-          facilityId,
+          selectedFacilityId,
           name.trim(),
           description.trim(),
           imageUri,
@@ -134,92 +122,51 @@ export default function AddMapScreen() {
         <View style={styles.section}>
           <H3>Facility</H3>
 
-          {facilities.length > 0 && !showNewFacility && (
-            <View style={styles.facilityList}>
-              {facilities.map((facility) => {
-                const isSelected = selectedFacilityId === facility.id;
-                return (
-                  <TouchableOpacity
-                    key={facility.id}
-                    style={[
-                      styles.facilityChip,
-                      {
-                        backgroundColor: isSelected ? colors.primary : colors.surface,
-                        borderColor: isSelected ? colors.primary : colors.border,
-                      },
-                    ]}
-                    onPress={() => setSelectedFacilityId(isSelected ? null : facility.id)}
-                    activeOpacity={0.7}
-                  >
-                    <Building2
-                      color={isSelected ? '#FFFFFF' : colors.textSecondary}
-                      size={16}
-                    />
-                    <View style={styles.facilityChipText}>
-                      <Body
+          <View style={styles.facilityList}>
+            {facilities.map((facility) => {
+              const isSelected = selectedFacilityId === facility.id;
+              return (
+                <TouchableOpacity
+                  key={facility.id}
+                  style={[
+                    styles.facilityChip,
+                    {
+                      backgroundColor: isSelected ? colors.primary : colors.surface,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                    },
+                  ]}
+                  onPress={() => setSelectedFacilityId(isSelected ? null : facility.id)}
+                  activeOpacity={0.7}
+                >
+                  <Building2
+                    color={isSelected ? '#FFFFFF' : colors.textSecondary}
+                    size={16}
+                  />
+                  <View style={styles.facilityChipText}>
+                    <Body
+                      style={{
+                        color: isSelected ? '#FFFFFF' : colors.text,
+                        fontSize: 14,
+                      }}
+                    >
+                      {facility.name}
+                    </Body>
+                    {facility.address ? (
+                      <Caption
                         style={{
-                          color: isSelected ? '#FFFFFF' : colors.text,
-                          fontSize: 14,
+                          color: isSelected ? 'rgba(255,255,255,0.8)' : undefined,
                         }}
+                        color={isSelected ? undefined : 'secondary'}
                       >
-                        {facility.name}
-                      </Body>
-                      {facility.address ? (
-                        <Caption
-                          style={{
-                            color: isSelected ? 'rgba(255,255,255,0.8)' : undefined,
-                          }}
-                          color={isSelected ? undefined : 'secondary'}
-                        >
-                          {facility.address}
-                        </Caption>
-                      ) : null}
-                    </View>
-                    {isSelected && <Check color="#FFFFFF" size={16} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-
-          {showNewFacility ? (
-            <View style={styles.newFacilityForm}>
-              <Input
-                label="Facility Name"
-                placeholder="e.g. Downtown Plant"
-                value={newFacilityName}
-                onChangeText={setNewFacilityName}
-              />
-              <AddressAutocomplete
-                label="Address"
-                placeholder="Search for an address..."
-                value={newFacilityAddress}
-                onChangeText={setNewFacilityAddress}
-                onSelect={({ address }) => setNewFacilityAddress(address)}
-              />
-              <TouchableOpacity
-                onPress={() => {
-                  setShowNewFacility(false);
-                  setNewFacilityName('');
-                  setNewFacilityAddress('');
-                }}
-              >
-                <Body style={{ color: colors.primary }}>Cancel</Body>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.addFacilityBtn, { borderColor: colors.border }]}
-              onPress={() => {
-                setShowNewFacility(true);
-                setSelectedFacilityId(null);
-              }}
-              activeOpacity={0.7}
-            >
-              <Plus color={colors.primary} size={18} />
-              <Body style={{ color: colors.primary }}>New Facility</Body>
-            </TouchableOpacity>
-          )}
+                        {facility.address}
+                      </Caption>
+                    ) : null}
+                  </View>
+                  {isSelected && <Check color="#FFFFFF" size={16} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Image Upload */}
@@ -275,19 +222,6 @@ const styles = StyleSheet.create({
   },
   facilityChipText: {
     flex: 1,
-  },
-  newFacilityForm: {
-    gap: 12,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  addFacilityBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
   },
   uploadBox: {
     height: 180,

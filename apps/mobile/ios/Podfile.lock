@@ -1543,6 +1543,27 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - react-native-passkey (3.3.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - react-native-safe-area-context (5.7.0):
     - hermes-engine
     - RCTRequired
@@ -2028,6 +2049,11 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - RNNotifee (9.1.8):
+    - React-Core
+    - RNNotifee/NotifeeCore (= 9.1.8)
+  - RNNotifee/NotifeeCore (9.1.8):
+    - React-Core
   - RNReanimated (4.2.3):
     - hermes-engine
     - RCTRequired
@@ -2309,6 +2335,7 @@ DEPENDENCIES:
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - "react-native-netinfo (from `../node_modules/@react-native-community/netinfo`)"
+  - react-native-passkey (from `../node_modules/react-native-passkey`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native/ReactCommon/react/networking`)
@@ -2347,6 +2374,7 @@ DEPENDENCIES:
   - "ReactNativeFs (from `../node_modules/@dr.pogodin/react-native-fs`)"
   - "RNCMaskedView (from `../node_modules/@react-native-masked-view/masked-view`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
+  - "RNNotifee (from `../node_modules/@notifee/react-native`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
@@ -2457,6 +2485,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-image-picker"
   react-native-netinfo:
     :path: "../node_modules/@react-native-community/netinfo"
+  react-native-passkey:
+    :path: "../node_modules/react-native-passkey"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2533,6 +2563,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-masked-view/masked-view"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
+  RNNotifee:
+    :path: "../node_modules/@notifee/react-native"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2596,6 +2628,7 @@ SPEC CHECKSUMS:
   react-native-get-random-values: b404868ac6bc3db8e51360ed38f0fa1566601013
   react-native-image-picker: 5b2b5c3c8dddce549228b35ba6a40d0916181ead
   react-native-netinfo: f30e1be3e6ceeba97a44c4c8530b441ca8cba2b4
+  react-native-passkey: 4196749aca4d938ab5c1df42b5802c996a16fff8
   react-native-safe-area-context: 866dbfc3292621c18abe9857bda29485bf20607a
   React-NativeModulesApple: 126e9fc928b57696c16f6945f9921e3f97af4106
   React-networking: 7ed380fbff2d3c679d0a29c9350983c3c0ef92c5
@@ -2634,6 +2667,7 @@ SPEC CHECKSUMS:
   ReactNativeFs: c19c5a3d8d52fcf7e3c424301b9719210b086c85
   RNCMaskedView: a543b7a36c195a519d1bd7ef0291f1cbc6a84a0d
   RNGestureHandler: 7e24c85e99d3aa91bfcb05a3f2bede9678a407d5
+  RNNotifee: 5e3b271e8ea7456a36eec994085543c9adca9168
   RNReanimated: d6595688cbd8abc95b79e31bf925824f05d9e85b
   RNScreens: 61e55a2d1ea789ae8b234803d7a151190e0c40f4
   RNSVG: 69057633bc3f2f6567c7b4b3347645bbf7c425d6
@@ -2643,4 +2677,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 0fe838e1ec4e7db8f2b12ae5a1ff933e62f3f080
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.15.2

@@ -46,6 +46,8 @@ export default Repack.defineRspackConfig({
     alias: {
       '@sitemap/shared/types': path.resolve(__dirname, '../../packages/shared/src/types/index.ts'),
       '@sitemap/shared/theme': path.resolve(__dirname, '../../packages/shared/src/theme/index.ts'),
+      '@sitemap/shared/schema': path.resolve(__dirname, '../../packages/shared/src/schema/index.ts'),
+      '@sitemap/shared/auth': path.resolve(__dirname, '../../packages/shared/src/auth/index.ts'),
       '@sitemap/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
     },
   },

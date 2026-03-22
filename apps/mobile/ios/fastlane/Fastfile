@@ -1,0 +1,204 @@
+# Fastlane configuration for SiteMap iOS deployment
+#
+# Available lanes:
+#   rock_beta              - Build with xcodebuild and upload to TestFlight
+#   upload_rock_testflight - Upload a pre-built IPA to TestFlight
+#   bump_build             - Increment build number (patch bump)
+#   bump_version_patch     - Increment patch version
+#   bump_version_minor     - Increment minor version
+#   bump_version_major     - Increment major version
+#   clean                  - Clear derived data and build artifacts
+#
+# Setup:
+#   1. Copy .env.example to .env and fill in your App Store Connect credentials
+#   2. Place your .p8 API key file in this directory
+#   3. See TESTFLIGHT_SETUP.md for the full guide
+
+begin
+  require 'dotenv'
+  Dotenv.load(File.join(__dir__, '.env'))
+rescue LoadError
+  UI.important("ℹ️  'dotenv' gem not available; ensure APP_STORE_CONNECT_API_PRIVATE_KEY_PATH is exported in your shell.")
+end
+
+EXPORT_OPTIONS_PATH = File.expand_path("../ExportOptions.plist", __dir__)
+
+def app_store_connect_key_path!
+  primary = ENV['APP_STORE_CONNECT_API_PRIVATE_KEY_PATH']
+  fallback = ENV['APP_STORE_CONNECT_API_KEY_PATH']
+  key_path = [primary, fallback].compact.map(&:strip).find { |value| !value.empty? }
+
+  UI.user_error!("❌ Set APP_STORE_CONNECT_API_PRIVATE_KEY_PATH in ios/fastlane/.env or export it before running Fastlane.") unless key_path
+
+  absolute_path = File.expand_path(key_path, __dir__)
+  UI.user_error!("❌ API key file not found at: #{absolute_path}") unless File.exist?(absolute_path)
+
+  absolute_path
+end
+
+default_platform(:ios)
+
+platform :ios do
+
+  # ── Version Management ──────────────────────────────────────────────────────
+
+  desc "Increment build number"
+  lane :bump_build do
+    sh("cd ../.. && node scripts/bump-ios-version.js bump patch")
+  end
+
+  desc "Increment version number (patch)"
+  lane :bump_version_patch do
+    sh("cd ../.. && node scripts/bump-ios-version.js bump patch")
+  end
+
+  desc "Increment version number (minor)"
+  lane :bump_version_minor do
+    sh("cd ../.. && node scripts/bump-ios-version.js bump minor")
+  end
+
+  desc "Increment version number (major)"
+  lane :bump_version_major do
+    sh("cd ../.. && node scripts/bump-ios-version.js bump major")
+  end
+
+  # ── TestFlight Upload ───────────────────────────────────────────────────────
+
+  desc "Upload pre-built IPA to TestFlight"
+  lane :upload_rock_testflight do |options|
+    # Default to the Rock-generated IPA location, but allow override
+    ipa_path = options[:ipa_path] || "../../.rock/cache/ios/export/SiteMap.ipa"
+    ipa_path = File.absolute_path(ipa_path)
+
+    unless File.exist?(ipa_path)
+      UI.user_error!("❌ IPA not found at: #{ipa_path}. Make sure to build first.")
+    end
+
+    UI.success("📦 Found IPA at: #{ipa_path}")
+
+    # Read version information from ios-version.json
+    version_file_path = File.expand_path("../../ios-version.json", __dir__)
+    if File.exist?(version_file_path)
+      begin
+        version_data = JSON.parse(File.read(version_file_path))
+        marketing_version = "#{version_data['major']}.#{version_data['minor']}.#{version_data['patch']}"
+        build_number = version_data['build']
+
+        UI.success("📱 App Version: #{marketing_version}")
+        UI.success("🔢 Build Number: #{build_number}")
+        puts ""
+        puts "🚀 Uploading build #{marketing_version} (#{build_number}) to TestFlight..."
+        puts ""
+      rescue JSON::ParserError => e
+        UI.important("⚠️  Could not parse version file: #{e.message}")
+      end
+    else
+      UI.important("⚠️  Version file not found at: #{version_file_path}")
+    end
+
+    # Upload to TestFlight
+    key_path = app_store_connect_key_path!
+    skip_waiting = ENV['SKIP_WAITING_FOR_BUILD_PROCESSING'] == 'true'
+    changelog_text = skip_waiting ? nil : (options[:changelog] || "Build created with Rock and uploaded via Fastlane")
+
+    upload_to_testflight(
+      ipa: ipa_path,
+      api_key: {
+        key_id: ENV['APP_STORE_CONNECT_API_KEY_ID'],
+        issuer_id: ENV['APP_STORE_CONNECT_ISSUER_ID'],
+        key: File.binread(key_path)
+      },
+      skip_waiting_for_build_processing: skip_waiting,
+      wait_for_uploaded_build: !skip_waiting,
+      skip_submission: true,
+      distribute_external: ENV['DISTRIBUTE_EXTERNAL'] == 'true',
+      notify_external_testers: ENV['NOTIFY_EXTERNAL_TESTERS'] == 'true',
+      changelog: changelog_text
+    )
+
+    if defined?(marketing_version) && defined?(build_number)
+      puts ""
+      puts "✅ Successfully uploaded build #{marketing_version} (#{build_number}) to TestFlight!"
+      puts "📱 App Version: #{marketing_version}"
+      puts "🔢 Build Number: #{build_number}"
+      puts "📦 IPA Location: #{ipa_path}"
+    else
+      puts "✅ Successfully uploaded IPA to TestFlight!"
+    end
+    puts "Build will be available for testing once processing is complete."
+    puts ""
+    puts "🌐 View your build in App Store Connect:"
+    puts "https://appstoreconnect.apple.com/"
+  end
+
+  # ── End-to-End Build + Upload ───────────────────────────────────────────────
+
+  desc "Build with Rock and upload to TestFlight (end-to-end)"
+  lane :rock_beta do |options|
+    # Bump version: marketing version if requested, otherwise just build number
+    if ENV['BUMP_MARKETING_VERSION'] == '1'
+      bump_type = ENV['BUMP_MARKETING_VERSION_BUMP_TYPE'] || 'patch'
+      sh("cd ../.. && node scripts/bump-ios-version.js bump #{bump_type}")
+    else
+      sh("cd ../.. && node scripts/bump-ios-version.js bump patch")
+    end
+
+    build_number = get_build_number(xcodeproj: "SiteMap.xcodeproj")
+    version_number = begin
+      get_version_number(xcodeproj: "SiteMap.xcodeproj")
+    rescue StandardError => e
+      UI.important("Unable to read marketing version from Xcode project: #{e.message}")
+      ENV['MARKETING_VERSION'] || 'unknown'
+    end
+    UI.message("📦 Preparing version #{version_number} (build #{build_number}) for TestFlight…")
+
+    # Clean any cached archives to ensure version bump is reflected
+    sh("rm -rf ../../.rock/cache/ios/archive/* ../../.rock/cache/ios/export/*")
+
+    # Build and archive with xcodebuild
+    sh("mkdir -p ../../.rock/cache/ios/archive")
+
+    sh("cd .. && xcodebuild " \
+       "-workspace SiteMap.xcworkspace " \
+       "-scheme SiteMap " \
+       "-configuration Release " \
+       "-destination 'generic/platform=iOS' " \
+       "-archivePath ../.rock/cache/ios/archive/SiteMap.xcarchive " \
+       "CODE_SIGN_STYLE=Manual " \
+       "'CODE_SIGN_IDENTITY=Apple Distribution' " \
+       "'PROVISIONING_PROFILE_SPECIFIER=match AppStore #{ENV['APP_IDENTIFIER'] || 'com.sitemap.app'}' " \
+       "DEVELOPMENT_TEAM=#{ENV['TEAM_ID'] || 'XXXXXXXXXX'} " \
+       "archive")
+
+    # Export the archive to IPA
+    sh("mkdir -p ../../.rock/cache/ios/export")
+    sh("rm -f ../../.rock/cache/ios/export/SiteMap.ipa")
+    export_options_path = File.expand_path("../ExportOptions.plist", __dir__)
+    sh("xcodebuild -exportArchive " \
+       "-archivePath ../../.rock/cache/ios/archive/SiteMap.xcarchive " \
+       "-exportPath ../../.rock/cache/ios/export " \
+       "-exportOptionsPlist #{export_options_path}")
+
+    UI.success("📦 IPA created successfully at: .rock/cache/ios/export/SiteMap.ipa")
+
+    # Upload the built IPA to TestFlight
+    upload_rock_testflight()
+
+    UI.success("🎉 Uploaded version #{version_number} (build #{build_number}) to TestFlight.")
+    puts "✅ Successfully built with Rock and uploaded to TestFlight!"
+  end
+
+  # ── Utilities ───────────────────────────────────────────────────────────────
+
+  desc "Clean build artifacts"
+  lane :clean do
+    clear_derived_data
+    sh "rm -rf ../build"
+  end
+
+  error do |lane, exception|
+    puts "❌ Fastlane failed in lane: #{lane}"
+    puts "Error: #{exception.message}"
+    puts "Check the logs above for more details."
+  end
+end

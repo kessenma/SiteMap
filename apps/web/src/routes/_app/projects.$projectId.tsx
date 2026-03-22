@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#
 import { getProject, getProjectMarkers } from '#/server/db-queries'
 import { ArrowLeft, MapIcon, MapPin } from 'lucide-react'
 
-export const Route = createFileRoute('/projects/$projectId')({
+export const Route = createFileRoute('/_app/projects/$projectId')({
   loader: async ({ params }) => {
     const [project, markers] = await Promise.all([
       getProject({ data: params.projectId }),

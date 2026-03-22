@@ -1,0 +1,9 @@
+# App Store Connect / Apple Developer account configuration
+#
+# Update these values with your own credentials before deploying.
+# See TESTFLIGHT_SETUP.md for details.
+
+app_identifier("com.sitemap.app")  # Your app's bundle ID
+apple_id("you@example.com")        # Your Apple ID email
+team_id("XXXXXXXXXX")              # Your Apple Developer Team ID
+itc_team_id("XXXXXXXXXX")          # App Store Connect Team ID (usually same as team_id)

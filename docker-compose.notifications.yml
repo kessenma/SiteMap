@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  gorush:
+    image: appleboy/gorush:latest
+    restart: always
+    ports:
+      - "${GORUSH_PORT:-8088}:8088"
+    volumes:
+      - ./apps/notifications-server/gorush-config.yml:/home/gorush/config.yml:ro
+      - ./apps/notifications-server/docker-entrypoint.sh:/home/gorush/docker-entrypoint.sh:ro
+      - gorush_keys:/keys
+    entrypoint: ["/bin/sh", "/home/gorush/docker-entrypoint.sh"]
+    environment:
+      APNS_KEY_BASE64: ${APNS_KEY_BASE64:-}
+      GORUSH_IOS_KEY_ID: ${APNS_KEY_ID:-}
+      GORUSH_IOS_TEAM_ID: ${APNS_TEAM_ID:-}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8088/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  notifications-server:
+    build:
+      context: ./apps/notifications-server
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${NOTIFICATIONS_PORT:-8080}:8080"
+    environment:
+      NOTIFICATIONS_PORT: "8080"
+      DATABASE_URL: ${DATABASE_URL}
+      GORUSH_URL: http://gorush:8088
+      IOS_BUNDLE_ID: ${IOS_BUNDLE_ID:-com.sitemap.app}
+    depends_on:
+      gorush:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  gorush_keys:

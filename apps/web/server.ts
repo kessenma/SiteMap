@@ -36,6 +36,34 @@ async function start() {
     async fetch(req) {
       const url = new URL(req.url)
 
+      // Handle file uploads
+      if (url.pathname === '/api/upload' && req.method === 'POST') {
+        const { handleUpload } = await import('./src/server/upload-handler')
+        return handleUpload(req)
+      }
+
+      // Handle Better Auth routes
+      if (url.pathname.startsWith('/api/auth/')) {
+        // Mobile-specific endpoints
+        if (url.pathname === '/api/auth/mobile-token' && req.method === 'POST') {
+          const { handleMobileToken } = await import('./src/server/mobile-auth')
+          return handleMobileToken(req)
+        }
+        if (url.pathname === '/api/auth/refresh-token' && req.method === 'POST') {
+          const { handleRefreshToken } = await import('./src/server/mobile-auth')
+          return handleRefreshToken(req)
+        }
+        // WebAuthn passkey routes
+        if (url.pathname.startsWith('/api/auth/webauthn/') && req.method === 'POST') {
+          const { handleWebAuthnRequest } = await import('./src/server/webauthn')
+          const webauthnResponse = await handleWebAuthnRequest(req)
+          if (webauthnResponse) return webauthnResponse
+        }
+        // All other auth routes handled by Better Auth
+        const { handleAuthRequest } = await import('./src/server/auth-handler')
+        return handleAuthRequest(req)
+      }
+
       // Try serving static files from client dist
       if (url.pathname !== '/' && !url.pathname.startsWith('/_server')) {
         const filePath = path.join(CLIENT_DIR, url.pathname)

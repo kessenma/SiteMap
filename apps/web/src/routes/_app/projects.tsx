@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#
 import { getProjects } from '#/server/db-queries'
 import { FolderOpen, MapPin, ArrowRight } from 'lucide-react'
 
-export const Route = createFileRoute('/projects')({
+export const Route = createFileRoute('/_app/projects')({
   loader: () => getProjects(),
   component: Projects,
 })

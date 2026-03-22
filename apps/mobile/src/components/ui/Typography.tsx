@@ -11,7 +11,7 @@ interface TypographyProps {
 export function H1({ children, style, color }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.h1, { color: getColor(colors, color) }, style]}>
+    <Text style={[styles.h1, { color: getColor(colors, color) ?? colors.text }, style]}>
       {children}
     </Text>
   );
@@ -20,7 +20,7 @@ export function H1({ children, style, color }: TypographyProps) {
 export function H2({ children, style, color }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.h2, { color: getColor(colors, color) }, style]}>
+    <Text style={[styles.h2, { color: getColor(colors, color) ?? colors.text }, style]}>
       {children}
     </Text>
   );
@@ -29,7 +29,7 @@ export function H2({ children, style, color }: TypographyProps) {
 export function H3({ children, style, color }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.h3, { color: getColor(colors, color) }, style]}>
+    <Text style={[styles.h3, { color: getColor(colors, color) ?? colors.text }, style]}>
       {children}
     </Text>
   );

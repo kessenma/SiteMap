@@ -1,22 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Map, Database, ClipboardList, Bell, Plus } from 'lucide-react-native';
-import { TouchableOpacity } from 'react-native';
+import { Map, Database, ClipboardList, Bell } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import MapScreen from '../screens/MapScreen';
 import DataScreen from '../screens/DataScreen';
 import TasksScreen from '../screens/TasksScreen';
 import AlertsScreen from '../screens/AlertsScreen';
 import AddMapScreen from '../screens/AddMapScreen';
+import AddFacilityScreen from '../screens/AddFacilityScreen';
 import MapViewerScreen from '../screens/MapViewerScreen';
 import KeyEditorScreen from '../screens/KeyEditorScreen';
 import MarkerDetailScreen from '../screens/MarkerDetailScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import SignupScreen from '../screens/auth/SignupScreen';
 
 export type RootStackParamList = {
   HomeTabs: undefined;
   AddMap: undefined;
+  AddFacility: undefined;
   MapViewer: { mapId: string; mapName: string };
   KeyEditor: { mapId: string };
   MarkerDetail: { markerId: string; markerLabel: string };
@@ -48,18 +53,10 @@ function HomeTabs() {
       <Tab.Screen
         name="Map"
         component={MapScreen}
-        options={({ navigation }) => ({
+        options={{
           title: 'Map',
           tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => navigation.getParent()?.navigate('AddMap')}
-              style={{ marginRight: 16 }}
-            >
-              <Plus color={colors.primary} size={24} />
-            </TouchableOpacity>
-          ),
-        })}
+        }}
       />
       <Tab.Screen
         name="Data"
@@ -89,8 +86,53 @@ function HomeTabs() {
   );
 }
 
+function AuthScreens() {
+  const [showSignup, setShowSignup] = useState(false);
+
+  if (showSignup) {
+    return <SignupScreen onNavigateToLogin={() => setShowSignup(false)} />;
+  }
+
+  return <LoginScreen onNavigateToSignup={() => setShowSignup(true)} />;
+}
+
 export default function MainNavigator() {
   const { colors, isDark } = useTheme();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <NavigationContainer
+        theme={{
+          dark: isDark,
+          colors: {
+            primary: colors.primary,
+            background: colors.background,
+            card: colors.surface,
+            text: colors.text,
+            border: colors.border,
+            notification: colors.danger,
+          },
+          fonts: {
+            regular: { fontFamily: 'System', fontWeight: '400' as const },
+            medium: { fontFamily: 'System', fontWeight: '500' as const },
+            bold: { fontFamily: 'System', fontWeight: '700' as const },
+            heavy: { fontFamily: 'System', fontWeight: '900' as const },
+          },
+        }}
+      >
+        <AuthScreens />
+      </NavigationContainer>
+    );
+  }
 
   return (
     <NavigationContainer
@@ -128,6 +170,11 @@ export default function MainNavigator() {
           name="AddMap"
           component={AddMapScreen}
           options={{ title: 'Add Map' }}
+        />
+        <Stack.Screen
+          name="AddFacility"
+          component={AddFacilityScreen}
+          options={{ title: 'Add Facility' }}
         />
         <Stack.Screen
           name="MapViewer"
