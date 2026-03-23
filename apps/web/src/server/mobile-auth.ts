@@ -19,7 +19,7 @@ async function signUserJwt(user: { id: string; email: string; firstName: string;
     .setIssuer(ISSUER)
     .setAudience(['powersync', 'powersync-dev'])
     .setIssuedAt()
-    .setExpirationTime('14d')
+    .setExpirationTime('23h')
     .sign(JWT_SECRET)
 }
 
