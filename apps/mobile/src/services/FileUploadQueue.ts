@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import { generateUUID } from '../utils/uuid';
 import { API_CONFIG, AUTH_CONFIG } from '../config';
 import { createMMKV } from 'react-native-mmkv';
 import { getPowerSyncDatabase } from './powersync/PowerSyncService';
@@ -25,7 +26,7 @@ export async function enqueueFileUpload(params: {
 }): Promise<void> {
   const db = getPowerSyncDatabase();
   const now = new Date().toISOString();
-  const id = crypto.randomUUID();
+  const id = generateUUID();
 
   await db.execute(
     `INSERT INTO file_upload_queue (id, table_name, record_id, column_name, local_uri, file_name, mime_type, folder, status, retry_count, created_at)

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { generateUUID } from '../utils/uuid';
 import { View, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -26,7 +27,7 @@ export default function AddFacilityScreen() {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const id = crypto.randomUUID();
+      const id = generateUUID();
       await execute(
         'INSERT INTO facilities (id, name, address, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
         [id, name.trim(), address.trim(), now, now],

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { generateUUID } from '../utils/uuid';
 
 interface Project {
   id: string;
@@ -21,7 +22,7 @@ export function useHomeViewModel() {
     if (!canCreate) return;
 
     const newProject: Project = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       name: newName.trim(),
     };
     setProjects((prev) => [newProject, ...prev]);

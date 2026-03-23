@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { generateUUID } from '../utils/uuid';
 import {
   View,
   Image,
@@ -72,7 +73,7 @@ export default function AddMapScreen() {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const mapId = crypto.randomUUID();
+      const mapId = generateUUID();
 
       const mimeType = imageName?.toLowerCase().endsWith('.png')
         ? 'image/png'
