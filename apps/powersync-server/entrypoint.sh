@@ -75,7 +75,7 @@ if [ -z "$JWT_SECRET" ]; then
   echo "WARNING: JWT_SECRET not set!"
   JWT_KEY_B64URL=""
 else
-  JWT_KEY_B64URL=$(echo -n "$JWT_SECRET" | base64 -w0 | tr '+/' '-_' | tr -d '=')
+  JWT_KEY_B64URL=$(echo -n "$JWT_SECRET" | tr '+/' '-_' | tr -d '=')
   echo "JWT key encoded for JWKS (length: ${#JWT_KEY_B64URL})"
 fi
 
