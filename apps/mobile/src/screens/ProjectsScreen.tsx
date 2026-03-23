@@ -35,7 +35,7 @@ export default function ProjectsScreen() {
   const createProject = useCallback(async () => {
     if (!newName.trim() || !user) return;
 
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     await execute(
       'INSERT INTO projects (id, name, description, address, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
