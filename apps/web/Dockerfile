@@ -32,6 +32,7 @@ COPY --from=build /app/apps/web/dist ./dist
 COPY --from=build /app/apps/web/server.ts ./server.ts
 COPY --from=build /app/apps/web/src/server ./src/server
 COPY --from=build /app/apps/web/package.json ./package.json
+COPY --from=build /app/apps/web/tsconfig.json ./tsconfig.json
 
 # Shared package (runtime dependency)
 COPY --from=build /app/packages/shared /app/packages/shared
