@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /config
 
-COPY config/sync-rules.yaml /config/sync-rules.yaml
+COPY config/sync-config.yaml /config/sync-config.yaml
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

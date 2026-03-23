@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { generateUUID } from '../utils/uuid';
 import {
   View,
   Image,
@@ -299,7 +300,7 @@ function FacilitiesSection({
     if (!selectedFacilityId) return;
     setAdding(true);
     try {
-      const id = crypto.randomUUID();
+      const id = generateUUID();
       const now = new Date().toISOString();
       await execute(
         'INSERT INTO user_facilities (id, user_id, facility_id, created_at) VALUES (?, ?, ?, ?)',
@@ -501,7 +502,7 @@ function TeammatesSection({
         return;
       }
 
-      const id = crypto.randomUUID();
+      const id = generateUUID();
       const now = new Date().toISOString();
       await execute(
         'INSERT INTO teammates (id, user_id, teammate_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',

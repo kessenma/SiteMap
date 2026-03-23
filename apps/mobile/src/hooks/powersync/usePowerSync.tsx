@@ -155,6 +155,7 @@ export function usePowerSync() {
 
 /**
  * Execute a read query against the local PowerSync database.
+ * Automatically re-runs when synced data changes the underlying tables.
  */
 export function usePowerSyncQuery<T>(
   query: string,
@@ -181,9 +182,36 @@ export function usePowerSyncQuery<T>(
     }
   }, [db, isReady, query, ...dependencies]);
 
+  // Watch for changes — re-run query when underlying tables are modified by sync.
+  // db.watch() yields T[] arrays (same format as getAll), providing initial results
+  // and re-querying whenever the underlying tables change.
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (!db || !isReady) return;
+
+    const abortController = new AbortController();
+
+    (async () => {
+      try {
+        for await (const results of db.watch(query, params, {
+          signal: abortController.signal,
+        })) {
+          setData((results.rows?._array ?? []) as T[]);
+          setQueryError(null);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        // AbortError is expected on cleanup
+        if ((err as Error).name !== 'AbortError') {
+          console.error('[usePowerSyncQuery] Watch error:', err);
+          setQueryError(err as Error);
+        }
+      }
+    })();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [db, isReady, query, ...dependencies]);
 
   return { data, isLoading, error: queryError, refresh };
 }

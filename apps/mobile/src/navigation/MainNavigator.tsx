@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Pressable } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Map, Database, ClipboardList, Bell, User } from 'lucide-react-native';
+import { Map, Database, ClipboardList, Bell, User, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsTablet } from '../hooks/useIsTablet';
@@ -195,7 +195,17 @@ export default function MainNavigator() {
         <Stack.Screen
           name="MapViewer"
           component={MapViewerScreen}
-          options={({ route }) => ({ title: route.params.mapName })}
+          options={({ route, navigation }) => ({
+            title: route.params.mapName,
+            headerLeft: () => (
+              <Pressable
+                onPress={() => navigation.goBack()}
+                style={{ marginLeft: 8, padding: 8 }}
+              >
+                <ChevronLeft size={24} color={colors.text} />
+              </Pressable>
+            ),
+          })}
         />
         <Stack.Screen
           name="KeyEditor"

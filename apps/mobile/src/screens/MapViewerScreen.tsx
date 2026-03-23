@@ -40,6 +40,7 @@ import { ListItemCreationCard } from '../components/map-viewer/ListItemCreationC
 
 import type { MapMarkerRecord, MapCommentRecord, MapKeyRecord } from '../db/powerSyncSchema';
 import type { AggregatedListItem } from '../hooks/useMapData';
+import { generateUUID } from '../utils/uuid';
 
 type RouteType = RouteProp<RootStackParamList, 'MapViewer'>;
 type Nav = StackNavigationProp<RootStackParamList>;
@@ -231,7 +232,7 @@ export default function MapViewerScreen() {
 
   const handleSaveComment = useCallback(async () => {
     if (!pendingComment || !commentText.trim() || !user) return;
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     await execute(
       `INSERT INTO map_comments (id, map_id, x, y, content, created_by, created_at, updated_at)
@@ -247,7 +248,7 @@ export default function MapViewerScreen() {
 
   const handleCommentReply = useCallback(async (commentId: string, content: string) => {
     if (!user) return;
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     await execute(
       `INSERT INTO comment_replies (id, comment_id, content, created_by, created_at, updated_at)
@@ -267,7 +268,7 @@ export default function MapViewerScreen() {
     if (existing) {
       await execute('DELETE FROM comment_reactions WHERE id = ?', [existing.id]);
     } else {
-      const id = crypto.randomUUID();
+      const id = generateUUID();
       const now = new Date().toISOString();
       await execute(
         `INSERT INTO comment_reactions (id, comment_id, user_id, emoji, created_at)
@@ -298,7 +299,7 @@ export default function MapViewerScreen() {
   }, [execute, refresh]);
 
   const handleCommentPhoto = useCallback(async (commentId: string, uri: string, fileName: string, fileSize: number) => {
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     const { localPath } = await saveFileOfflineFirst({
       localUri: uri,
@@ -318,7 +319,7 @@ export default function MapViewerScreen() {
 
   const handleSavePath = useCallback(async () => {
     if (!pendingPath || !user) return;
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     await execute(
       `INSERT INTO map_paths (id, map_id, label, color, stroke_width, path_data, created_by, created_at, updated_at)
@@ -350,7 +351,7 @@ export default function MapViewerScreen() {
 
   const handleCreateList = useCallback(async (name: string, description: string) => {
     if (!user) return;
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     await execute(
       `INSERT INTO map_lists (id, map_id, name, description, created_by, created_at, updated_at)
@@ -364,7 +365,7 @@ export default function MapViewerScreen() {
     if (!pendingListItem || !selectedListId || !user) return;
     const list = lists.find((l) => l.id === selectedListId);
     const nextOrder = (list?.items.length ?? 0) + 1;
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     await execute(
       `INSERT INTO map_list_items (id, list_id, x, y, label, description, sort_order, status, created_at, updated_at)
@@ -394,7 +395,7 @@ export default function MapViewerScreen() {
   }, [user, execute, refresh]);
 
   const handleListItemPhoto = useCallback(async (itemId: string, uri: string, fileName: string, fileSize: number) => {
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
     const { localPath } = await saveFileOfflineFirst({
       localUri: uri,
@@ -419,7 +420,7 @@ export default function MapViewerScreen() {
       const result = await launchImageLibrary({ mediaType: 'photo', quality: 1 });
       if (result.assets?.[0]) {
         const asset = result.assets[0];
-        const id = crypto.randomUUID();
+        const id = generateUUID();
         const now = new Date().toISOString();
         const fileName = asset.fileName ?? 'map.jpg';
         const mimeType = fileName.toLowerCase().endsWith('.png')

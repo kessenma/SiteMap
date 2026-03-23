@@ -61,7 +61,7 @@ services:
       POWERSYNC_LOG_LEVEL: ${POWERSYNC_LOG_LEVEL:-info}
       POWERSYNC_SLOT_NAME: ${POWERSYNC_SLOT_NAME:-powersync_sitemap_slot}
       POWERSYNC_PUBLICATION: ${POWERSYNC_PUBLICATION:-powersync_sitemap_pub}
-      POWERSYNC_SYNC_RULES_PATH: /config/sync-rules.yaml
+      POWERSYNC_SYNC_RULES_PATH: /config/sync-config.yaml
       NODE_ENV: ${NODE_ENV:-production}
     volumes:
       - powersync-data:/data

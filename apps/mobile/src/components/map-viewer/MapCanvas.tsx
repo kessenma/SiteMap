@@ -487,39 +487,6 @@ export function MapCanvas({
       runOnJS(handleTap)(e.x, e.y);
     });
 
-  // For draw-path mode, use single-finger pan
-  const drawPanGesture = Gesture.Pan()
-    .maxPointers(1)
-    .minDistance(5)
-    .enabled(mode === 'draw-path')
-    .onStart((e) => {
-      runOnJS(handleDrawStart)(e.x, e.y);
-    })
-    .onUpdate((e) => {
-      runOnJS(handleDrawUpdate)(e.x, e.y);
-    })
-    .onEnd(() => {
-      runOnJS(handleDrawEnd)();
-    });
-
-  const handleDrawStart = useCallback((absX: number, absY: number) => {
-    const pt = screenToMap(absX, absY);
-    if (pt) onPathDraw?.([pt]); // Initial single point signals start
-  }, [onPathDraw, containerWidth, containerHeight, scale, translateX, translateY, vw, vh]);
-
-  const handleDrawUpdate = useCallback((absX: number, absY: number) => {
-    const pt = screenToMap(absX, absY);
-    if (pt) {
-      // This is called on the JS thread - parent handles accumulating points
-      onMapClick?.(pt.x, pt.y);
-    }
-  }, [onMapClick, containerWidth, containerHeight, scale, translateX, translateY, vw, vh]);
-
-  const handleDrawEnd = useCallback(() => {
-    // Signal end of drawing - parent handles saving
-    onPathDraw?.([]); // Empty array signals end
-  }, [onPathDraw]);
-
   // Helper to convert screen coords to map coords
   const screenToMap = useCallback((absX: number, absY: number): { x: number; y: number } | null => {
     const cw = containerWidth.value;
@@ -556,6 +523,39 @@ export function MapCanvas({
     if (mapX < 0 || mapX > vw || mapY < 0 || mapY > vh) return null;
     return { x: Math.round(mapX), y: Math.round(mapY) };
   }, [containerWidth, containerHeight, scale, translateX, translateY, vw, vh]);
+
+  const handleDrawStart = useCallback((absX: number, absY: number) => {
+    const pt = screenToMap(absX, absY);
+    if (pt) onPathDraw?.([pt]); // Initial single point signals start
+  }, [screenToMap, onPathDraw]);
+
+  const handleDrawUpdate = useCallback((absX: number, absY: number) => {
+    const pt = screenToMap(absX, absY);
+    if (pt) {
+      // This is called on the JS thread - parent handles accumulating points
+      onMapClick?.(pt.x, pt.y);
+    }
+  }, [screenToMap, onMapClick]);
+
+  const handleDrawEnd = useCallback(() => {
+    // Signal end of drawing - parent handles saving
+    onPathDraw?.([]); // Empty array signals end
+  }, [onPathDraw]);
+
+  // For draw-path mode, use single-finger pan
+  const drawPanGesture = Gesture.Pan()
+    .maxPointers(1)
+    .minDistance(5)
+    .enabled(mode === 'draw-path')
+    .onStart((e) => {
+      runOnJS(handleDrawStart)(e.x, e.y);
+    })
+    .onUpdate((e) => {
+      runOnJS(handleDrawUpdate)(e.x, e.y);
+    })
+    .onEnd(() => {
+      runOnJS(handleDrawEnd)();
+    });
 
   // Compose gestures
   const zoomPan = Gesture.Simultaneous(pinchGesture, panGesture);

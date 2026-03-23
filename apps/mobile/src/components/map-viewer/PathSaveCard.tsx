@@ -90,7 +90,7 @@ export function PathSaveCard({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 12,
+    bottom: 80,
     left: 12,
     right: 12,
     borderRadius: 10,

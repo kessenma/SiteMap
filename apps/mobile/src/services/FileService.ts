@@ -1,5 +1,13 @@
 import { Platform } from 'react-native';
-import RNFS from '@dr.pogodin/react-native-fs';
+import {
+  CachesDirectoryPath,
+  DocumentDirectoryPath,
+  mkdir,
+  copyFile,
+  exists,
+  stat,
+  downloadFile,
+} from '@dr.pogodin/react-native-fs';
 import { API_CONFIG, AUTH_CONFIG } from '../config';
 import { createMMKV } from 'react-native-mmkv';
 import { getPowerSyncDatabase } from './powersync/PowerSyncService';
@@ -8,7 +16,7 @@ import { enqueueFileUpload } from './FileUploadQueue';
 const storage = createMMKV({ id: 'auth-service' });
 
 function getCacheDir() {
-  return `${RNFS.CachesDirectoryPath}/map-files`;
+  return `${CachesDirectoryPath}/map-files`;
 }
 
 // ─── Offline-first upload ────────────────────────────────────────────
@@ -33,15 +41,15 @@ export async function saveFileOfflineFirst(params: {
   const { localUri, fileName, mimeType, folder, tableName, recordId, columnName = 'file_uri' } = params;
 
   // Copy to a stable local directory so temp picker URIs don't expire
-  const stableDir = `${RNFS.DocumentDirectoryPath}/uploads/${folder}`;
-  await RNFS.mkdir(stableDir);
+  const stableDir = `${DocumentDirectoryPath}/uploads/${folder}`;
+  await mkdir(stableDir);
   const stablePath = `${stableDir}/${recordId}_${fileName}`;
 
   const sourceUri = Platform.OS === 'android'
     ? localUri
     : localUri.replace('file://', '');
 
-  await RNFS.copyFile(sourceUri, stablePath);
+  await copyFile(sourceUri, stablePath);
 
   const localPath = Platform.OS === 'android' ? `file://${stablePath}` : stablePath;
 
@@ -109,10 +117,10 @@ export async function resolveFileUri(fileUri: string): Promise<string> {
   );
 
   if (cached.length > 0 && cached[0].local_path) {
-    const exists = await RNFS.exists(
+    const fileExists = await exists(
       cached[0].local_path.replace('file://', ''),
     );
-    if (exists) {
+    if (fileExists) {
       return cached[0].local_path;
     }
     // Cache entry exists but file is gone — remove stale entry
@@ -121,7 +129,7 @@ export async function resolveFileUri(fileUri: string): Promise<string> {
 
   // 2. Download through the authenticated proxy
   const cacheDir = getCacheDir();
-  await RNFS.mkdir(cacheDir);
+  await mkdir(cacheDir);
 
   const cacheKey = fileUri.replace(/[^a-zA-Z0-9._-]/g, '_');
   const cachedPath = `${cacheDir}/${cacheKey}`;
@@ -129,7 +137,7 @@ export async function resolveFileUri(fileUri: string): Promise<string> {
   const url = getFileProxyUrl(fileUri);
   const sessionCookie = getSessionCookie();
 
-  const downloadResult = await RNFS.downloadFile({
+  const downloadResult = await downloadFile({
     fromUrl: url,
     toFile: cachedPath,
     headers: { Cookie: sessionCookie },
@@ -143,12 +151,12 @@ export async function resolveFileUri(fileUri: string): Promise<string> {
 
   // 3. Save to media_cache for future offline access
   const now = new Date().toISOString();
-  const stat = await RNFS.stat(cachedPath);
+  const fileStat = await stat(cachedPath);
 
   await db.execute(
     `INSERT OR REPLACE INTO media_cache (id, local_path, content_type, file_size, cached_at)
      VALUES (?, ?, ?, ?, ?)`,
-    [fileUri, localPath, '', Number(stat.size) || 0, now],
+    [fileUri, localPath, '', Number(fileStat.size) || 0, now],
   );
 
   return localPath;

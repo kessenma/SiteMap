@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { generateUUID } from '../utils/uuid';
 import {
   View,
   Image,
@@ -117,7 +118,7 @@ export default function ITServiceRequestScreen() {
 
     setSubmitting(true);
     try {
-      const requestId = crypto.randomUUID();
+      const requestId = generateUUID();
       const now = new Date().toISOString();
 
       await execute(
@@ -128,7 +129,7 @@ export default function ITServiceRequestScreen() {
 
       // Save photos
       for (const photo of photos) {
-        const photoId = crypto.randomUUID();
+        const photoId = generateUUID();
         const mimeType = photo.fileName.toLowerCase().endsWith('.png')
           ? 'image/png'
           : 'image/jpeg';
