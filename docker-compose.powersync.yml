@@ -78,6 +78,7 @@ services:
       - "traefik.http.routers.powersync-https.tls=true"
       - "traefik.http.routers.powersync-https.tls.certresolver=letsencrypt"
       - "traefik.http.services.powersync.loadbalancer.server.port=6061"
+      - "traefik.docker.network=coolify"
     networks:
       - default
       - coolify

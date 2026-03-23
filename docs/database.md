@@ -238,6 +238,61 @@ All parent-child relationships use `ON DELETE CASCADE` — deleting a project re
 | Icon shape | `circle`, `square`, `triangle`, `diamond` | `iconShapeEnum` |
 | File type | `pdf`, `image` | `fileTypeEnum` |
 
+## PostgreSQL Configuration for PowerSync
+
+PowerSync requires **logical replication** to stream changes from PostgreSQL to mobile devices. This must be configured on the PostgreSQL server before PowerSync will work.
+
+### Required setting
+
+```sql
+ALTER SYSTEM SET wal_level = 'logical';
+```
+
+**A full PostgreSQL restart is required** after changing this setting (`SELECT pg_reload_conf()` is not sufficient).
+
+### Why this is needed
+
+PowerSync uses PostgreSQL logical replication slots to capture row-level changes (inserts, updates, deletes) and stream them to mobile clients. The default `wal_level = replica` only supports physical replication and does not include the logical decoding information PowerSync needs.
+
+### How to verify
+
+```sql
+SHOW wal_level;
+-- Should return: logical
+```
+
+### Troubleshooting
+
+If PowerSync logs show this error repeatedly:
+
+> `wal_level must be set to 'logical', your database has it set to 'replica'`
+
+Run the `ALTER SYSTEM` command above, then restart PostgreSQL. If running in Docker:
+
+```bash
+docker exec <postgres-container> psql -U postgres -c "ALTER SYSTEM SET wal_level = 'logical';"
+docker restart <postgres-container>
+```
+
+### Related PowerSync settings
+
+These are configured via environment variables in `docker-compose.powersync.yml`:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `POWERSYNC_SLOT_NAME` | `powersync_sitemap_slot` | Replication slot name |
+| `POWERSYNC_PUBLICATION` | `powersync_sitemap_pub` | Publication name |
+
+To clean up stale replication slots (e.g., after a crash):
+
+```sql
+SELECT pg_drop_replication_slot(slot_name)
+FROM pg_replication_slots
+WHERE slot_name LIKE '%powersync%';
+```
+
+---
+
 ## Sync Streams (PowerSync)
 
 All tables are synced to mobile via PowerSync Edition 3 streams defined in `apps/powersync-server/config/sync-config.yaml`:
