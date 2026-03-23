@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, TextInput, Image, Alert, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, TextInput, Image, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { Send, ImagePlus, CheckCircle2, RotateCcw } from 'lucide-react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -22,7 +22,7 @@ export function CommentThread({
   onToggleReaction: (commentId: string, emoji: string) => void;
   onResolve: (commentId: string) => void;
   onReopen: (commentId: string) => void;
-  onAddPhoto: (commentId: string, uri: string, fileName: string, fileSize: number) => void;
+  onAddPhoto: (commentId: string, uri: string, fileName: string, fileSize: number) => void | Promise<void>;
 }) {
   const { colors } = useTheme();
   const [replyText, setReplyText] = useState('');
@@ -41,11 +41,18 @@ export function CommentThread({
     ]);
   };
 
+  const [uploading, setUploading] = useState(false);
+
   const handlePickPhoto = async () => {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
     const asset = result.assets?.[0];
     if (asset?.uri) {
-      onAddPhoto(comment.id, asset.uri, asset.fileName ?? 'photo.jpg', asset.fileSize ?? 0);
+      setUploading(true);
+      try {
+        await onAddPhoto(comment.id, asset.uri, asset.fileName ?? 'photo.jpg', asset.fileSize ?? 0);
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
@@ -147,12 +154,17 @@ export function CommentThread({
       {/* Actions */}
       <View style={styles.actionRow}>
         <TouchableOpacity
-          style={[styles.actionBtn, { borderColor: colors.border }]}
+          style={[styles.actionBtn, { borderColor: colors.border, opacity: uploading ? 0.5 : 1 }]}
           onPress={handlePickPhoto}
           activeOpacity={0.7}
+          disabled={uploading}
         >
-          <ImagePlus size={14} color={colors.textSecondary} />
-          <Caption color="secondary">Photo</Caption>
+          {uploading ? (
+            <ActivityIndicator size={14} color={colors.textSecondary} />
+          ) : (
+            <ImagePlus size={14} color={colors.textSecondary} />
+          )}
+          <Caption color="secondary">{uploading ? 'Uploading...' : 'Photo'}</Caption>
         </TouchableOpacity>
 
         {isResolved ? (

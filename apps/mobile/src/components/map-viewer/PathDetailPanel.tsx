@@ -4,25 +4,25 @@ import { Pencil, Trash2 } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Body, Caption } from '../ui/Typography';
 import { Button } from '../ui/Button';
-import { PATH_COLORS } from './map-constants';
+import { PATH_COLORS, PATH_WIDTHS } from './map-constants';
 import type { MapPathRecord } from '../../db/powerSyncSchema';
-
-const STROKE_WIDTHS = [1, 2, 4, 6];
 
 export function PathDetailPanel({
   path,
   onUpdate,
   onDelete,
+  onPreview,
 }: {
   path: MapPathRecord;
   onUpdate: (pathId: string, data: { label: string; color: string; strokeWidth: number }) => void;
   onDelete: (pathId: string) => void;
+  onPreview?: (overrides: { color: string; strokeWidth: number } | null) => void;
 }) {
   const { colors } = useTheme();
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState(path.label ?? '');
   const [color, setColor] = useState(path.color ?? '#3B82F6');
-  const [strokeWidth, setStrokeWidth] = useState(path.stroke_width ?? 2);
+  const [strokeWidth, setStrokeWidth] = useState(path.stroke_width ?? 4);
 
   const handleDelete = () => {
     Alert.alert('Delete Path', 'Are you sure you want to delete this path?', [
@@ -52,25 +52,32 @@ export function PathDetailPanel({
                 styles.colorSwatch,
                 { backgroundColor: c, borderColor: c === color ? '#000' : '#d1d5db' },
               ]}
-              onPress={() => setColor(c)}
+              onPress={() => { setColor(c); onPreview?.({ color: c, strokeWidth }); }}
             />
           ))}
         </View>
 
         <Caption color="secondary" style={styles.fieldLabel}>Thickness</Caption>
         <View style={styles.widthRow}>
-          {STROKE_WIDTHS.map((w) => (
+          {PATH_WIDTHS.map((w) => (
             <TouchableOpacity
               key={w}
               style={[
                 styles.widthBtn,
                 { borderColor: w === strokeWidth ? colors.primary : colors.border },
               ]}
-              onPress={() => setStrokeWidth(w)}
+              onPress={() => { setStrokeWidth(w); onPreview?.({ color, strokeWidth: w }); }}
             >
-              <Caption style={{ color: w === strokeWidth ? colors.primary : colors.text }}>
-                {w}px
-              </Caption>
+              <View
+                style={[
+                  styles.widthDot,
+                  {
+                    width: Math.max(w, 2),
+                    height: Math.max(w, 2),
+                    backgroundColor: color,
+                  },
+                ]}
+              />
             </TouchableOpacity>
           ))}
         </View>
@@ -79,13 +86,14 @@ export function PathDetailPanel({
           <Button
             variant="primary"
             onPress={() => {
+              onPreview?.(null);
               onUpdate(path.id, { label, color, strokeWidth });
               setEditing(false);
             }}
           >
             Save
           </Button>
-          <Button variant="outline" onPress={() => setEditing(false)}>
+          <Button variant="outline" onPress={() => { onPreview?.(null); setEditing(false); }}>
             Cancel
           </Button>
         </View>
@@ -110,7 +118,7 @@ export function PathDetailPanel({
         </TouchableOpacity>
       </View>
       <Caption color="secondary">
-        {path.stroke_width ?? 2}px \u00B7 {path.created_at ? new Date(path.created_at).toLocaleDateString() : ''}
+        {path.stroke_width ?? 4}px {'\u00B7'} {path.created_at ? new Date(path.created_at).toLocaleDateString() : ''}
       </Caption>
     </View>
   );
@@ -166,6 +174,7 @@ const styles = StyleSheet.create({
   colorRow: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   colorSwatch: {
     width: 24,
@@ -175,15 +184,19 @@ const styles = StyleSheet.create({
   },
   widthRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
+    flexWrap: 'wrap',
   },
   widthBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 6,
     borderWidth: 1,
-    minHeight: 28,
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  widthDot: {
+    borderRadius: 999,
   },
   actionRow: {
     flexDirection: 'row',

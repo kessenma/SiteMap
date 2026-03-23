@@ -18,6 +18,9 @@ export const PATH_COLORS = [
   '#EC4899', '#06B6D4', '#F97316',
 ] as const;
 
+export const PATH_WIDTHS = [2, 4, 6, 8, 12, 16] as const;
+export const DEFAULT_PATH_WIDTH = 4;
+
 export const LIST_ITEM_STATUS_COLORS: Record<string, string> = {
   pending: '#9CA3AF',
   in_progress: '#F59E0B',

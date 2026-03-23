@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useMapData } from '../hooks/useMapData';
 import { saveFileOfflineFirst } from '../services/FileService';
 import type { RootStackParamList } from '../navigation/MainNavigator';
+import { DEFAULT_PATH_WIDTH } from '../components/map-viewer/map-constants';
 import type { MapMode } from '../components/map-viewer/map-constants';
 
 // Map viewer components
@@ -78,12 +79,20 @@ export default function MapViewerScreen() {
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [selectedListItemId, setSelectedListItemId] = useState<string | null>(null);
 
+  // Drill-in state (first tap highlights, second tap expands detail)
+  const [expandedComment, setExpandedComment] = useState<string | null>(null);
+  const [expandedPath, setExpandedPath] = useState<string | null>(null);
+
+  // Live preview overrides for path editing
+  const [pathPreview, setPathPreview] = useState<{ color: string; strokeWidth: number } | null>(null);
+
   // Creation state
   const [pendingComment, setPendingComment] = useState<{ x: number; y: number } | null>(null);
   const [commentText, setCommentText] = useState('');
   const [pendingPath, setPendingPath] = useState<{ x: number; y: number }[] | null>(null);
   const [pathLabel, setPathLabel] = useState('');
   const [pathColor, setPathColor] = useState('#3B82F6');
+  const [pathWidth, setPathWidth] = useState(DEFAULT_PATH_WIDTH);
   const [pendingListItem, setPendingListItem] = useState<{ x: number; y: number } | null>(null);
   const [listItemLabel, setListItemLabel] = useState('');
   const [listItemDesc, setListItemDesc] = useState('');
@@ -99,6 +108,19 @@ export default function MapViewerScreen() {
   const selectedPath = paths.find((p) => p.id === selectedPathId) ?? null;
   const selectedListItem = allListItems.find((i) => i.id === selectedListItemId) ?? null;
   const selectedList = lists.find((l) => l.id === selectedListId) ?? null;
+
+  // Paths with live preview overrides for the canvas
+  const viewerPaths = useMemo(() =>
+    paths.map((p) =>
+      p.id === selectedPathId && pathPreview
+        ? { ...p, color: pathPreview.color, stroke_width: pathPreview.strokeWidth }
+        : p
+    ), [paths, selectedPathId, pathPreview]);
+
+  // Pending path preview for canvas (shown before save)
+  const pendingPathPreview = useMemo(() =>
+    pendingPath ? { points: pendingPath, color: pathColor, strokeWidth: pathWidth } : null,
+    [pendingPath, pathColor, pathWidth]);
 
   // ── Auto-switch tab on selection ──────────────────────────────────────
 
@@ -154,6 +176,7 @@ export default function MapViewerScreen() {
         setPendingPath([...drawingPoints]);
         setPathLabel('');
         setPathColor('#3B82F6');
+        setPathWidth(DEFAULT_PATH_WIDTH);
       }
       setDrawingPoints([]);
     }
@@ -167,24 +190,31 @@ export default function MapViewerScreen() {
       setSelectedCommentId(null);
       setSelectedPathId(null);
       setSelectedListItemId(null);
+      setExpandedComment(null);
+      setExpandedPath(null);
     }
   }, []);
 
   const handleCommentSelect = useCallback((comment: MapCommentRecord | null) => {
     setSelectedCommentId(comment?.id ?? null);
+    setExpandedComment(null); // map pin tap highlights, doesn't drill in
     if (comment) {
       setSelectedMarkerId(null);
       setSelectedPathId(null);
       setSelectedListItemId(null);
+      setExpandedPath(null);
     }
   }, []);
 
   const handlePathSelect = useCallback((pathId: string | null) => {
     setSelectedPathId(pathId);
+    setExpandedPath(null); // map path tap highlights, doesn't drill in
+    setPathPreview(null);
     if (pathId) {
       setSelectedMarkerId(null);
       setSelectedCommentId(null);
       setSelectedListItemId(null);
+      setExpandedComment(null);
     }
   }, []);
 
@@ -293,13 +323,13 @@ export default function MapViewerScreen() {
     await execute(
       `INSERT INTO map_paths (id, map_id, label, color, stroke_width, path_data, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, mapId, pathLabel, pathColor, 2, JSON.stringify(pendingPath), user.id, now, now],
+      [id, mapId, pathLabel, pathColor, pathWidth, JSON.stringify(pendingPath), user.id, now, now],
     );
     setPendingPath(null);
     setMode('select');
     setActiveTab('paths');
     refresh();
-  }, [pendingPath, pathLabel, pathColor, mapId, user, execute, refresh]);
+  }, [pendingPath, pathLabel, pathColor, pathWidth, mapId, user, execute, refresh]);
 
   const handleUpdatePath = useCallback(async (pathId: string, data: { label: string; color: string; strokeWidth: number }) => {
     const now = new Date().toISOString();
@@ -313,6 +343,8 @@ export default function MapViewerScreen() {
   const handleDeletePath = useCallback(async (pathId: string) => {
     await execute('DELETE FROM map_paths WHERE id = ?', [pathId]);
     setSelectedPathId(null);
+    setExpandedPath(null);
+    setPathPreview(null);
     refresh();
   }, [execute, refresh]);
 
@@ -472,7 +504,7 @@ export default function MapViewerScreen() {
           comments={comments}
           selectedCommentId={selectedCommentId}
           onCommentSelect={handleCommentSelect}
-          paths={paths}
+          paths={viewerPaths}
           selectedPathId={selectedPathId}
           onPathSelect={handlePathSelect}
           onPathDraw={handlePathDraw}
@@ -481,6 +513,7 @@ export default function MapViewerScreen() {
           onListItemSelect={handleListItemSelect}
           drawingPoints={drawingPoints}
           isDrawing={isDrawing}
+          pendingPath={pendingPathPreview}
         />
 
         {/* Floating toolbar */}
@@ -519,6 +552,8 @@ export default function MapViewerScreen() {
             onLabelChange={setPathLabel}
             color={pathColor}
             onColorChange={setPathColor}
+            strokeWidth={pathWidth}
+            onStrokeWidthChange={setPathWidth}
             onSave={handleSavePath}
             onDiscard={() => setPendingPath(null)}
           />
@@ -550,36 +585,65 @@ export default function MapViewerScreen() {
         )}
 
         {activeTab === 'comments' && (
-          selectedComment ? (
-            <CommentThread
-              comment={selectedComment}
-              onReply={handleCommentReply}
-              onToggleReaction={handleToggleReaction}
-              onResolve={handleResolve}
-              onReopen={handleReopen}
-              onAddPhoto={handleCommentPhoto}
-            />
+          selectedComment && expandedComment === selectedCommentId ? (
+            <>
+              <TouchableOpacity
+                onPress={() => { setExpandedComment(null); setSelectedCommentId(null); }}
+                style={styles.backLink}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{'\u2190'} All comments</Text>
+              </TouchableOpacity>
+              <CommentThread
+                comment={selectedComment}
+                onReply={handleCommentReply}
+                onToggleReaction={handleToggleReaction}
+                onResolve={handleResolve}
+                onReopen={handleReopen}
+                onAddPhoto={handleCommentPhoto}
+              />
+            </>
           ) : (
             <CommentList
               comments={comments}
               selectedCommentId={selectedCommentId}
-              onSelect={setSelectedCommentId}
+              onSelect={(commentId) => {
+                if (selectedCommentId === commentId) {
+                  setExpandedComment(commentId);
+                } else {
+                  setSelectedCommentId(commentId);
+                }
+              }}
             />
           )
         )}
 
         {activeTab === 'paths' && (
-          selectedPath ? (
-            <PathDetailPanel
-              path={selectedPath}
-              onUpdate={handleUpdatePath}
-              onDelete={handleDeletePath}
-            />
+          selectedPath && expandedPath === selectedPathId ? (
+            <>
+              <TouchableOpacity
+                onPress={() => { setExpandedPath(null); setSelectedPathId(null); setPathPreview(null); }}
+                style={styles.backLink}
+              >
+                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>{'\u2190'} All paths</Text>
+              </TouchableOpacity>
+              <PathDetailPanel
+                path={selectedPath}
+                onUpdate={(pathId, data) => { setPathPreview(null); handleUpdatePath(pathId, data); }}
+                onDelete={handleDeletePath}
+                onPreview={setPathPreview}
+              />
+            </>
           ) : (
             <PathList
               paths={paths}
               selectedPathId={selectedPathId}
-              onSelect={setSelectedPathId}
+              onSelect={(pathId) => {
+                if (selectedPathId === pathId) {
+                  setExpandedPath(pathId);
+                } else {
+                  setSelectedPathId(pathId);
+                }
+              }}
             />
           )
         )}
@@ -688,5 +752,9 @@ const styles = StyleSheet.create({
   },
   emptyTabText: {
     fontSize: 13,
+  },
+  backLink: {
+    paddingVertical: 4,
+    marginBottom: 6,
   },
 });

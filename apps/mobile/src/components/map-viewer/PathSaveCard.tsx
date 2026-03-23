@@ -3,7 +3,7 @@ import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Caption } from '../ui/Typography';
 import { Button } from '../ui/Button';
-import { PATH_COLORS } from './map-constants';
+import { PATH_COLORS, PATH_WIDTHS } from './map-constants';
 
 export function PathSaveCard({
   pointCount,
@@ -11,6 +11,8 @@ export function PathSaveCard({
   onLabelChange,
   color,
   onColorChange,
+  strokeWidth,
+  onStrokeWidthChange,
   onSave,
   onDiscard,
 }: {
@@ -19,6 +21,8 @@ export function PathSaveCard({
   onLabelChange: (text: string) => void;
   color: string;
   onColorChange: (color: string) => void;
+  strokeWidth: number;
+  onStrokeWidthChange: (width: number) => void;
   onSave: () => void;
   onDiscard: () => void;
 }) {
@@ -39,6 +43,28 @@ export function PathSaveCard({
             ]}
             onPress={() => onColorChange(c)}
           />
+        ))}
+      </View>
+      <View style={styles.widthRow}>
+        <Caption color="secondary" style={styles.widthLabel}>Width:</Caption>
+        {PATH_WIDTHS.map((w) => (
+          <TouchableOpacity
+            key={w}
+            style={[
+              styles.widthBtn,
+              { borderColor: w === strokeWidth ? colors.primary : colors.border },
+            ]}
+            onPress={() => onStrokeWidthChange(w)}
+          >
+            <View
+              style={{
+                width: Math.max(w, 2),
+                height: Math.max(w, 2),
+                borderRadius: 999,
+                backgroundColor: color,
+              }}
+            />
+          </TouchableOpacity>
         ))}
       </View>
       <View style={styles.row}>
@@ -80,12 +106,30 @@ const styles = StyleSheet.create({
   colorRow: {
     flexDirection: 'row',
     gap: 8,
+    flexWrap: 'wrap',
   },
   colorSwatch: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
+  },
+  widthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  widthLabel: {
+    fontSize: 11,
+    marginRight: 2,
+  },
+  widthBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   row: {
     flexDirection: 'row',

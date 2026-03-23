@@ -57,6 +57,7 @@ type MapCanvasProps = {
   onListItemSelect: (item: AggregatedListItem | null) => void;
   drawingPoints?: { x: number; y: number }[];
   isDrawing?: boolean;
+  pendingPath?: { points: { x: number; y: number }[]; color: string; strokeWidth: number } | null;
 };
 
 // ── Marker rendering ────────────────────────────────────────────────────
@@ -143,14 +144,28 @@ function CommentPinSvg({
   isSelected: boolean;
 }) {
   const isResolved = !!comment.resolved_at;
+  const s = 1.8; // scale factor for better touch targets
   return (
-    <G x={comment.x ?? 0} y={comment.y ?? 0} opacity={isResolved ? 0.5 : 1}>
+    <G x={comment.x ?? 0} y={comment.y ?? 0} opacity={isResolved ? 0.5 : 1} scale={s}>
+      {/* Selection ring */}
+      {isSelected && (
+        <Circle cy={-6} r={8} fill="none" stroke="#3B82F6" strokeWidth={2} opacity={0.5} />
+      )}
+      {/* Drop shadow */}
+      <SvgPath
+        d="M0,-16 C-8,-16 -12,-10 -12,-6 C-12,2 0,12 0,12 C0,12 12,2 12,-6 C12,-10 8,-16 0,-16Z"
+        fill="rgba(0,0,0,0.2)"
+        x={1}
+        y={1}
+      />
+      {/* Pin shape */}
       <SvgPath
         d="M0,-16 C-8,-16 -12,-10 -12,-6 C-12,2 0,12 0,12 C0,12 12,2 12,-6 C12,-10 8,-16 0,-16Z"
         fill={isSelected ? '#3B82F6' : '#6366F1'}
         stroke={isSelected ? '#fff' : 'rgba(0,0,0,0.3)'}
         strokeWidth={isSelected ? 2 : 1}
       />
+      {/* Inner circle */}
       <Circle cy={-6} r={4} fill="#fff" />
       {isResolved && (
         <SvgText textAnchor="middle" y={-3} fill="#10B981" fontSize={8} fontWeight="bold">
@@ -215,7 +230,27 @@ function PathOverlaySvg({
 
         return (
           <G key={p.id}>
-            {/* Selection outline */}
+            {/* Wide invisible hit area for tapping */}
+            <Polyline
+              points={pointsStr}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={Math.max((p.stroke_width ?? 2) * 3, 20)}
+              strokeLinecap="round"
+            />
+            {/* Selection glow */}
+            {isSelected && (
+              <Polyline
+                points={pointsStr}
+                fill="none"
+                stroke={p.color ?? '#3B82F6'}
+                strokeWidth={(p.stroke_width ?? 2) + 8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.25}
+              />
+            )}
+            {/* Selection white outline */}
             {isSelected && (
               <Polyline
                 points={pointsStr}
@@ -224,6 +259,7 @@ function PathOverlaySvg({
                 strokeWidth={(p.stroke_width ?? 2) + 4}
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                opacity={0.5}
               />
             )}
             {/* Visible path */}
@@ -235,14 +271,6 @@ function PathOverlaySvg({
               strokeLinecap="round"
               strokeLinejoin="round"
               opacity={isSelected ? 1 : 0.8}
-            />
-            {/* Wide invisible hit area for tapping */}
-            <Polyline
-              points={pointsStr}
-              fill="none"
-              stroke="transparent"
-              strokeWidth={20}
-              strokeLinecap="round"
             />
             {/* Label at midpoint */}
             {p.label && points.length > 1 ? (() => {
@@ -300,6 +328,7 @@ export function MapCanvas({
   onListItemSelect,
   drawingPoints = [],
   isDrawing = false,
+  pendingPath = null,
 }: MapCanvasProps) {
   const { colors } = useTheme();
   const resolvedUri = useFileUrl(fileType === 'image' ? fileUri : null);
@@ -577,6 +606,19 @@ export function MapCanvas({
 
             {/* Layer 2: Paths */}
             <PathOverlaySvg paths={paths} selectedPathId={selectedPathId} />
+
+            {/* Pending path preview (before save) */}
+            {pendingPath && pendingPath.points.length > 1 && (
+              <Polyline
+                points={pendingPath.points.map((p) => `${p.x},${p.y}`).join(' ')}
+                fill="none"
+                stroke={pendingPath.color}
+                strokeWidth={pendingPath.strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.9}
+              />
+            )}
 
             {/* Live drawing preview */}
             {isDrawing && drawingPoints.length > 1 && (

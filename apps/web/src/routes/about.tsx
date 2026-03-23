@@ -78,8 +78,14 @@ function About() {
               <CardDescription>Pin equipment on your map</CardDescription>
             </CardHeader>
             <CardContent>
-              Tap on your uploaded map to place markers at exact locations. Each marker is associated with one of
-              your custom icons, making it easy to see at a glance what equipment is where.
+              <p className="mb-2">
+                Tap on your uploaded map to place markers at exact locations. Each marker is associated with one of
+                your custom icons, making it easy to see at a glance what equipment is where.
+              </p>
+              <p>
+                Markers follow a status workflow &mdash; <strong>active</strong>, <strong>flagged</strong>,
+                or <strong>resolved</strong> &mdash; so teams can track inspection progress across the facility.
+              </p>
             </CardContent>
           </Card>
 
@@ -106,8 +112,15 @@ function About() {
               <CardDescription>Works without connectivity</CardDescription>
             </CardHeader>
             <CardContent>
-              All data is stored locally on your device using SQLite. Work in areas with no
-              connectivity—everything syncs automatically when you reconnect.
+              <p className="mb-2">
+                All data is stored locally on your device using SQLite (encrypted with SQLCipher on mobile).
+                Work in areas with no connectivity &mdash; everything syncs automatically when you reconnect.
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Background file upload queue with automatic retry</li>
+                <li>Local media cache for offline photo viewing</li>
+                <li>Encrypted local database on mobile devices</li>
+              </ul>
             </CardContent>
           </Card>
 
@@ -139,6 +152,134 @@ function About() {
                 <li>Android notifications via Firebase Cloud Messaging</li>
                 <li>Automatic device registration on login</li>
                 <li>Batch notifications to multiple users</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Collaboration">
+        <p className="mb-4">
+          SiteMap includes a full collaboration layer built directly into the map viewer. Teams can
+          discuss issues, track progress, and coordinate work without leaving the map.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Comment Threads</CardTitle>
+              <CardDescription>Spatial discussions on maps</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                Pin comments to exact locations on a map. Each comment supports a full thread with nested
+                replies, so discussions stay attached to the relevant spot on the floor plan.
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Comments placed at x/y coordinates on the map</li>
+                <li>Nested reply threads per comment</li>
+                <li>Photo attachments on comments and replies</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Reactions & Resolution</CardTitle>
+              <CardDescription>Track acknowledgment and progress</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                React to comments with emoji and mark issues as resolved when they're addressed:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Emoji reactions (thumbs up/down, heart, fire, eyes)</li>
+                <li>Resolve and reopen comments with tracking</li>
+                <li>See who resolved each issue and when</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Annotations & Checklists">
+        <p className="mb-4">
+          Beyond markers, SiteMap supports freehand path drawing and location-based checklists
+          for structured inspection workflows.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Path Drawing</CardTitle>
+              <CardDescription>Annotate maps with freehand paths</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                Draw paths directly on your map to mark cable runs, routes, zones, or any spatial annotation:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Freehand drawing with smooth path rendering</li>
+                <li>Custom colors and stroke widths</li>
+                <li>Labels per path for quick identification</li>
+                <li>Edit or delete paths after creation</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Location Checklists</CardTitle>
+              <CardDescription>Structured inspection tracking</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                Create named checklists on maps with items pinned to specific locations:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Items pinned to x/y coordinates on the map</li>
+                <li>Status tracking: pending, in progress, completed</li>
+                <li>Photo attachments per checklist item</li>
+                <li>Filter items by completion status</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Service Requests">
+        <p className="mb-4">
+          Operators on the plant floor can create IT service requests directly from the map,
+          pinpointing exactly where the issue is and attaching photo evidence.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Issue Reporting</CardTitle>
+              <CardDescription>Location-based service requests</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                Create service requests with a pin on the map showing the exact location of the problem:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>9 predefined categories (network, hardware, software, etc.)</li>
+                <li>Custom category entry for edge cases</li>
+                <li>Description and multiple photo attachments</li>
+                <li>Camera capture or photo library</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Status Workflow</CardTitle>
+              <CardDescription>Track issues to resolution</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                Each service request follows a lifecycle from report to resolution:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li><strong>Open</strong> &mdash; newly reported issue</li>
+                <li><strong>In Progress</strong> &mdash; technician is working on it</li>
+                <li><strong>Resolved</strong> &mdash; fix applied</li>
+                <li><strong>Closed</strong> &mdash; verified and complete</li>
               </ul>
             </CardContent>
           </Card>
@@ -250,6 +391,99 @@ function About() {
         </div>
       </Section>
 
+      <Section title="Dashboard & Administration">
+        <p className="mb-4">
+          The web dashboard provides a centralized view of all facility data, recent activity,
+          and platform administration.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dashboard Overview</CardTitle>
+              <CardDescription>Stats and recent activity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">At-a-glance metrics and a live activity feed:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Total projects, markers, and maps</li>
+                <li>Marker counts by status (active, flagged, resolved)</li>
+                <li>Recent marker updates from mobile with timestamps</li>
+                <li>Filterable activity feed by status</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin Panel</CardTitle>
+              <CardDescription>Platform management</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">Admin-only controls for managing the platform:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>User management table with role assignment</li>
+                <li>Activate or deactivate user accounts</li>
+                <li>PowerSync health monitoring with refresh</li>
+                <li>Object storage credentials and console access</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Facility & Team Management">
+        <p className="mb-4">
+          Organize work by facility and manage team relationships directly from the app. Users
+          can be assigned to specific facilities and collaborate with teammates across roles.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Facilities</CardTitle>
+              <CardDescription>Organize by location</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">Create and manage physical facilities:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Name, address, and description</li>
+                <li>Assign users to specific facilities</li>
+                <li>Filter maps by facility</li>
+                <li>Facility cards with map counts</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Teammates</CardTitle>
+              <CardDescription>Team collaboration</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">Invite and manage your team:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Invite teammates by email</li>
+                <li>Assign roles: team member or manager</li>
+                <li>Update or remove teammates</li>
+                <li>Available on both web and mobile</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile</CardTitle>
+              <CardDescription>User settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">Manage your account and preferences:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Upload and update profile avatar</li>
+                <li>Edit first and last name</li>
+                <li>View assigned facilities</li>
+                <li>Manage teammate connections</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
       <Section title="Push Notifications">
         <p className="mb-4">
           SiteMap includes a fully self-hosted push notification system — no third-party push services required
@@ -300,6 +534,46 @@ function About() {
             <CardContent>
               The entire notification stack (Go server + Gorush) is defined in a single Docker Compose file.
               Just add your APNs key and run <code className="rounded bg-muted px-1 text-xs">docker compose up</code>.
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
+      <Section title="Object Storage (RustFS)">
+        <p className="mb-4">
+          SiteMap uses a self-hosted S3-compatible object storage server (RustFS) for all file uploads &mdash;
+          no third-party cloud storage required. All map images, marker photos, comment attachments, and
+          checklist item photos are stored here.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>RustFS Server</CardTitle>
+              <CardDescription>S3-compatible file storage</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">A Rust-based object storage server with full S3 API compatibility:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Auto-creates the default media bucket on startup</li>
+                <li>Access key and secret key authentication</li>
+                <li>Built-in web console for browsing stored files</li>
+                <li>Runs as a Docker container with persistent volumes</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>File Handling</CardTitle>
+              <CardDescription>Upload, proxy, and cache</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">Files flow through a consistent pipeline across both apps:</p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Web uploads via server functions with signed URLs</li>
+                <li>Mobile saves files locally first, then queues for upload</li>
+                <li>Authenticated file proxy for serving stored files</li>
+                <li>Local media cache on mobile for offline access</li>
+              </ul>
             </CardContent>
           </Card>
         </div>
@@ -421,20 +695,24 @@ function About() {
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">React Native + Re.Pack</Badge>
           <Badge variant="outline">TanStack Start</Badge>
+          <Badge variant="outline">TanStack DB</Badge>
           <Badge variant="outline">PostgreSQL</Badge>
           <Badge variant="outline">PowerSync</Badge>
+          <Badge variant="outline">RustFS</Badge>
           <Badge variant="outline">Gorush</Badge>
           <Badge variant="outline">Go</Badge>
           <Badge variant="outline">Docker</Badge>
           <Badge variant="outline">better-auth</Badge>
           <Badge variant="outline">SimpleWebAuthn</Badge>
           <Badge variant="outline">react-native-skia</Badge>
+          <Badge variant="outline">SQLCipher</Badge>
         </div>
         <ul className="mt-4 list-none space-y-2">
           <li><strong>Mobile:</strong> React Native + Re.Pack (iOS/Android)</li>
-          <li><strong>Web:</strong> React 19 + TanStack Start + Drizzle ORM</li>
-          <li><strong>Database:</strong> PostgreSQL</li>
+          <li><strong>Web:</strong> React 19 + TanStack Start + TanStack DB + Drizzle ORM</li>
+          <li><strong>Database:</strong> PostgreSQL (server) + SQLite/SQLCipher (mobile)</li>
           <li><strong>Sync:</strong> PowerSync (offline-first with cloud bridge)</li>
+          <li><strong>File Storage:</strong> RustFS (self-hosted S3-compatible)</li>
           <li><strong>Push Notifications:</strong> Go microservice + Gorush (APNs/FCM gateway)</li>
           <li><strong>Canvas/Interaction:</strong> react-native-skia (pan/zoom/markers)</li>
           <li><strong>Infrastructure:</strong> Docker Compose for all services</li>
@@ -485,7 +763,7 @@ function About() {
           <Card>
             <CardHeader>
               <CardTitle>Core Tables</CardTitle>
-              <CardDescription>7 data tables + 4 auth tables</CardDescription>
+              <CardDescription>18 data tables + auth tables</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="list-disc space-y-1 pl-6">
@@ -496,9 +774,14 @@ function About() {
                 <li><strong>map_keys</strong> &mdash; legend items with icons and colors</li>
                 <li><strong>map_markers</strong> &mdash; pinned locations on maps</li>
                 <li><strong>marker_photos</strong> &mdash; photos attached to markers</li>
+                <li><strong>map_comments / comment_replies / comment_reactions / comment_photos</strong> &mdash; collaboration layer</li>
+                <li><strong>map_paths</strong> &mdash; drawn annotations with color and width</li>
+                <li><strong>map_lists / map_list_items / list_item_photos</strong> &mdash; checklists</li>
+                <li><strong>service_requests / service_request_photos</strong> &mdash; IT issue tracking</li>
+                <li><strong>user_facilities / teammates</strong> &mdash; team relationships</li>
               </ul>
               <p className="mt-2 text-sm text-muted-foreground">
-                Auth tables (sessions, accounts, verifications) are web-only and not synced to mobile.
+                Auth tables (sessions, accounts, verifications, passkey_credentials) are web-only and not synced to mobile.
               </p>
             </CardContent>
           </Card>
@@ -638,10 +921,10 @@ function About() {
           <Card size="sm">
             <CardHeader>
               <CardTitle>
-                <Badge variant="secondary">Phase 2</Badge>
+                <Badge>Phase 2</Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>Document attachment (PDFs, manuals, schematics per equipment)</CardContent>
+            <CardContent>Collaboration (comments, reactions, threads), path drawing, checklists, service requests, facility &amp; team management</CardContent>
           </Card>
           <Card size="sm">
             <CardHeader>
@@ -649,7 +932,7 @@ function About() {
                 <Badge variant="secondary">Phase 3</Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>Multi-facility project support, team collaboration features, audit reporting</CardContent>
+            <CardContent>Document attachment (PDFs, manuals, schematics per equipment), audit reporting, advanced analytics</CardContent>
           </Card>
         </div>
       </Section>

@@ -59,6 +59,9 @@ export function CommentList({
                 {c.replies.length > 0 && ` \u00B7 ${c.replies.length} repl${c.replies.length === 1 ? 'y' : 'ies'}`}
               </Caption>
             </View>
+            {isSelected && (
+              <Caption color="secondary" style={styles.hint}>tap to open</Caption>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -94,5 +97,10 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 14,
+  },
+  hint: {
+    fontSize: 10,
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
 });

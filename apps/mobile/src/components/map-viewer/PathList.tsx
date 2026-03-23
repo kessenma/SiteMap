@@ -46,6 +46,9 @@ export function PathList({
             <Body numberOfLines={1} style={styles.label}>
               {p.label || 'Untitled path'}
             </Body>
+            {isSelected && (
+              <Caption color="secondary" style={styles.hint}>tap to edit</Caption>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -77,5 +80,8 @@ const styles = StyleSheet.create({
   label: {
     flex: 1,
     fontSize: 14,
+  },
+  hint: {
+    fontSize: 10,
   },
 });
