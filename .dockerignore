@@ -1,0 +1,18 @@
+node_modules
+.git
+.gitignore
+
+# Apps not needed for web build
+apps/mobile
+apps/notifications-server
+apps/object-storage
+apps/powersync-server
+
+# Dev/editor files
+.env
+.vscode
+.idea
+*.log
+.turbo
+.cache
+dist

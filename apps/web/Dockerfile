@@ -20,10 +20,21 @@ RUN cd apps/web && bun run build
 
 # Production
 FROM base AS production
+WORKDIR /app/apps/web
+
+# Root node_modules (hoisted deps like react)
+COPY --from=deps /app/node_modules /app/node_modules
+COPY --from=deps /app/package.json /app/package.json
+
+# Web app node_modules, built output, server, and runtime source
+COPY --from=deps /app/apps/web/node_modules ./node_modules
 COPY --from=build /app/apps/web/dist ./dist
 COPY --from=build /app/apps/web/server.ts ./server.ts
-COPY --from=build /app/apps/web/node_modules ./node_modules
+COPY --from=build /app/apps/web/src/server ./src/server
 COPY --from=build /app/apps/web/package.json ./package.json
+
+# Shared package (runtime dependency)
+COPY --from=build /app/packages/shared /app/packages/shared
 
 ENV NODE_ENV=production
 ENV PORT=3000
