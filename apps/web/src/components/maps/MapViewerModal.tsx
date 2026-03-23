@@ -154,22 +154,24 @@ export function MapViewerModal({
 
   const handleMarkerSelect = useCallback((m: any) => {
     setSelectedMarkerId(m?.id ?? null)
-    if (m) { setSelectedCommentId(null); setSelectedPathId(null); setSelectedListItemId(null) }
+    if (m) { setSelectedCommentId(null); setSelectedPathId(null); setSelectedListItemId(null); setExpandedComment(null); setExpandedPath(null) }
   }, [])
 
   const handleCommentSelect = useCallback((c: any) => {
     setSelectedCommentId(c?.id ?? null)
+    setExpandedComment(null) // clicking on map pin highlights in list, doesn't drill in
     if (c) { setSelectedMarkerId(null); setSelectedPathId(null); setSelectedListItemId(null) }
   }, [])
 
   const handlePathSelect = useCallback((id: string | null) => {
     setSelectedPathId(id)
-    if (id) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedListItemId(null) }
+    setExpandedPath(null) // clicking on map path highlights in list, doesn't drill in
+    if (id) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedListItemId(null); setExpandedComment(null) }
   }, [])
 
   const handleListItemSelect = useCallback((i: any) => {
     setSelectedListItemId(i?.id ?? null)
-    if (i) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedPathId(null) }
+    if (i) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedPathId(null); setExpandedComment(null); setExpandedPath(null) }
   }, [])
 
   const handlePathDraw = useCallback((points: { x: number; y: number }[]) => {
@@ -213,6 +215,22 @@ export function MapViewerModal({
     else if (selectedPathId) setSidebarTab('paths')
     else if (selectedListItemId) setSidebarTab('lists')
   }, [selectedMarkerId, selectedCommentId, selectedPathId, selectedListItemId])
+
+  const handleModeChange = useCallback((newMode: MapMode) => {
+    setMode(newMode)
+    if (newMode === 'add-list-item') {
+      setSidebarTab('lists')
+      // Auto-select the first list if none selected
+      const allLists = listsList ?? []
+      if (!selectedListId && allLists.length > 0) {
+        setSelectedListId(allLists[0].id)
+      }
+    } else if (newMode === 'add-comment') {
+      setSidebarTab('comments')
+    } else if (newMode === 'draw-path') {
+      setSidebarTab('paths')
+    }
+  }, [listsList, selectedListId])
 
   return (
     <Dialog
@@ -263,7 +281,7 @@ export function MapViewerModal({
             </DialogHeader>
 
             {/* Toolbar */}
-            <MapToolbar mode={mode} onModeChange={setMode} />
+            <MapToolbar mode={mode} onModeChange={handleModeChange} />
 
             {/* Body */}
             <div className="flex flex-1 gap-4 overflow-hidden min-h-0">
@@ -296,6 +314,18 @@ export function MapViewerModal({
                 ) : (
                   <div className="flex h-full items-center justify-center text-muted-foreground">
                     No file uploaded for this map.
+                  </div>
+                )}
+
+                {/* Mode hint banners */}
+                {mode === 'add-list-item' && !selectedListId && (
+                  <div className="absolute top-3 left-3 right-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/50 p-2 shadow-sm text-center">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">Select a list in the sidebar first, then click on the map to add items.</p>
+                  </div>
+                )}
+                {mode === 'add-list-item' && selectedListId && !pendingListItem && (
+                  <div className="absolute top-3 left-3 right-3 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/50 p-2 shadow-sm text-center">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Click on the map to place a list item.</p>
                   </div>
                 )}
 
@@ -514,36 +544,59 @@ export function MapViewerModal({
 
                   {/* Paths tab */}
                   <TabsContent value="paths" className="mt-0 space-y-2">
-                    {selectedPath ? (
-                      <PathDetailPanel
-                        path={selectedPath}
-                        onUpdate={(pathId, data) => { setPathPreview(null); actions.updatePath({ pathId, ...data }) }}
-                        onDelete={(pathId) => {
-                          setPathPreview(null)
-                          actions.deletePath({ pathId })
-                          setSelectedPathId(null)
-                        }}
-                        onPreview={setPathPreview}
-                      />
+                    {selectedPath && expandedPath === selectedPathId ? (
+                      <>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:text-foreground mb-1"
+                          onClick={() => { setExpandedPath(null); setSelectedPathId(null) }}
+                        >
+                          &larr; All paths
+                        </button>
+                        <PathDetailPanel
+                          path={selectedPath}
+                          onUpdate={(pathId, data) => { setPathPreview(null); actions.updatePath({ pathId, ...data }) }}
+                          onDelete={(pathId) => {
+                            setPathPreview(null)
+                            setExpandedPath(null)
+                            actions.deletePath({ pathId })
+                            setSelectedPathId(null)
+                          }}
+                          onPreview={setPathPreview}
+                        />
+                      </>
                     ) : (
                       <>
-                        {(pathsList ?? []).length === 0 ? (
+                        {paths.length === 0 ? (
                           <p className="text-xs text-muted-foreground">
                             No paths yet. Use "Draw Path" mode to draw on the map.
                           </p>
                         ) : (
-                          (pathsList ?? []).map((p) => (
+                          paths.map((p) => (
                             <button
                               key={p.id}
                               type="button"
-                              className="flex w-full items-center gap-2 rounded-lg border border-border p-2 text-left hover:bg-muted/50"
-                              onClick={() => setSelectedPathId(p.id)}
+                              className={`flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors ${
+                                selectedPathId === p.id
+                                  ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                                  : 'border-border hover:bg-muted/50'
+                              }`}
+                              onClick={() => {
+                                if (selectedPathId === p.id) {
+                                  setExpandedPath(p.id)
+                                } else {
+                                  setSelectedPathId(p.id)
+                                }
+                              }}
                             >
                               <span
                                 className="inline-block h-3 w-6 rounded-sm shrink-0"
                                 style={{ backgroundColor: p.color }}
                               />
                               <span className="text-xs truncate flex-1">{p.label || 'Untitled path'}</span>
+                              {selectedPathId === p.id && (
+                                <span className="text-[10px] text-muted-foreground shrink-0">click to edit</span>
+                              )}
                             </button>
                           ))
                         )}

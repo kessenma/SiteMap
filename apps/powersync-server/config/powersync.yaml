@@ -30,7 +30,7 @@ client_auth:
         alg: HS256
 
   audience: ["powersync", "powersync-dev"]
-  issuer: https://sitemap.yourdomain.com
+  issuer: https://sitemap.live
 
 telemetry:
   disable_telemetry_sharing: true

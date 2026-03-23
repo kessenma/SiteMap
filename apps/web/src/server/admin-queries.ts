@@ -61,6 +61,33 @@ export const updateUserRole = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+export const checkPowerSyncHealth = createServerFn({ method: 'GET' }).handler(async () => {
+  await requireRole(['admin'])
+  const url = process.env.PROD_POWERSYNC_URL || 'https://sync.sitemap.live'
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    const res = await fetch(`${url}/probes/liveness`, {
+      method: 'GET',
+      signal: controller.signal,
+    })
+    clearTimeout(timeoutId)
+    return {
+      url,
+      status: res.status,
+      ok: res.ok,
+      error: null,
+    }
+  } catch (err) {
+    return {
+      url,
+      status: 0,
+      ok: false,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    }
+  }
+})
+
 export const toggleUserActive = createServerFn({ method: 'POST' })
   .inputValidator((input: { userId: string; isActive: boolean }) => input)
   .handler(async ({ data }) => {

@@ -5,8 +5,9 @@ import { Badge } from '#/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '#/components/ui/select'
 import { Switch } from '#/components/ui/switch'
-import { getAllUsers, getStorageConfig, updateUserRole, toggleUserActive } from '#/server/admin-queries'
-import { Users, Shield, HardDrive, ExternalLink, Eye, EyeOff } from 'lucide-react'
+import { getAllUsers, getStorageConfig, updateUserRole, toggleUserActive, checkPowerSyncHealth } from '#/server/admin-queries'
+import { Users, Shield, HardDrive, ExternalLink, Eye, EyeOff, Activity, RefreshCw } from 'lucide-react'
+import { Button } from '#/components/ui/button'
 
 export const Route = createFileRoute('/_app/admin')({
   beforeLoad: ({ context }) => {
@@ -15,16 +16,34 @@ export const Route = createFileRoute('/_app/admin')({
     }
   },
   loader: async () => {
-    const [users, storage] = await Promise.all([getAllUsers(), getStorageConfig()])
-    return { users, storage }
+    const [users, storage, powerSync] = await Promise.all([
+      getAllUsers(),
+      getStorageConfig(),
+      checkPowerSyncHealth(),
+    ])
+    return { users, storage, powerSync }
   },
   component: AdminPanel,
 })
 
 function AdminPanel() {
-  const { users: initialUsers, storage } = Route.useLoaderData()
+  const { users: initialUsers, storage, powerSync: initialPowerSync } = Route.useLoaderData()
   const [userList, setUserList] = useState(initialUsers)
   const [showSecret, setShowSecret] = useState(false)
+  const [psHealth, setPsHealth] = useState(initialPowerSync)
+  const [psChecking, setPsChecking] = useState(false)
+
+  const recheckPowerSync = async () => {
+    setPsChecking(true)
+    try {
+      const result = await checkPowerSyncHealth()
+      setPsHealth(result)
+    } catch {
+      setPsHealth({ url: psHealth.url, status: 0, ok: false, error: 'Check failed' })
+    } finally {
+      setPsChecking(false)
+    }
+  }
 
   const activeAdminCount = userList.filter((u) => u.role === 'admin' && u.isActive).length
   const isLastAdmin = (user: (typeof userList)[number]) =>
@@ -61,6 +80,59 @@ function AdminPanel() {
         </h1>
         <p className="text-sm text-gray-500">Manage users, roles, and access</p>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            PowerSync Server
+          </CardTitle>
+          <CardDescription>Sync server health check</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Endpoint</span>
+              <code className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs">{psHealth.url}</code>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Status</span>
+              <div className="flex items-center gap-2">
+                {psHealth.ok ? (
+                  <Badge variant="outline" className="text-green-600">
+                    {psHealth.status} OK
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-red-600">
+                    {psHealth.error || `HTTP ${psHealth.status}`}
+                  </Badge>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={recheckPowerSync}
+                  disabled={psChecking}
+                  className="h-7 w-7 p-0"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${psChecking ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Liveness Probe</span>
+              <a
+                href={`${psHealth.url}/probes/liveness`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline text-xs"
+              >
+                /probes/liveness
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader>

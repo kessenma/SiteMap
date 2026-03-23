@@ -5,7 +5,7 @@ import { users, accounts } from '#/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 const JWT_SECRET = Buffer.from(process.env.JWT_SECRET!, 'base64')
-const ISSUER = process.env.PROD_API_URL || 'https://sitemap.yourdomain.com'
+const ISSUER = process.env.PROD_API_URL || 'https://sitemap.live'
 
 async function signUserJwt(user: { id: string; email: string; firstName: string; lastName: string; role: string }) {
   return new SignJWT({

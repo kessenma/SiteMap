@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '#/components/ui/select'
-import { ImagePlus } from 'lucide-react'
+import { ImagePlus, Loader2 } from 'lucide-react'
 import { LIST_ITEM_STATUS_COLORS } from './map-constants'
 
 type ListItemPhoto = {
@@ -20,6 +21,28 @@ type ListItem = {
   photos?: ListItemPhoto[]
 }
 
+function PhotoThumb({ photo }: { photo: ListItemPhoto }) {
+  const [loaded, setLoaded] = useState(false)
+  return (
+    <div className="relative">
+      {!loaded && (
+        <div className="w-full aspect-square rounded border border-border bg-muted flex items-center justify-center">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      <img
+        src={`/api/files?path=${encodeURIComponent(photo.fileUri)}`}
+        alt={photo.caption || photo.fileName}
+        className={`w-full aspect-square rounded border border-border object-cover ${loaded ? '' : 'hidden'}`}
+        onLoad={() => setLoaded(true)}
+      />
+      {photo.caption && (
+        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{photo.caption}</p>
+      )}
+    </div>
+  )
+}
+
 export function ListItemDetail({
   item,
   onUpdateStatus,
@@ -27,8 +50,22 @@ export function ListItemDetail({
 }: {
   item: ListItem
   onUpdateStatus: (itemId: string, status: string) => void
-  onAddPhoto: (itemId: string, file: File) => void
+  onAddPhoto: (itemId: string, file: File) => Promise<void> | void
 }) {
+  const [uploading, setUploading] = useState(false)
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      await onAddPhoto(item.id, file)
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
@@ -73,33 +110,26 @@ export function ListItemDetail({
           <h4 className="text-xs font-medium">Photos</h4>
           <div className="grid grid-cols-2 gap-1.5">
             {item.photos.map((photo) => (
-              <div key={photo.id} className="relative">
-                <img
-                  src={`/api/files?path=${encodeURIComponent(photo.fileUri)}`}
-                  alt={photo.caption || photo.fileName}
-                  className="w-full aspect-square rounded border border-border object-cover"
-                />
-                {photo.caption && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{photo.caption}</p>
-                )}
-              </div>
+              <PhotoThumb key={photo.id} photo={photo} />
             ))}
           </div>
         </div>
       )}
 
-      <label className="cursor-pointer block">
+      <label className={`block ${uploading ? 'pointer-events-none' : 'cursor-pointer'}`}>
         <input
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) onAddPhoto(item.id, file)
-          }}
+          disabled={uploading}
+          onChange={handleFileChange}
         />
         <span className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground cursor-pointer w-full">
-          <ImagePlus className="h-3 w-3" /> Add Photo
+          {uploading ? (
+            <><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</>
+          ) : (
+            <><ImagePlus className="h-3 w-3" /> Add Photo</>
+          )}
         </span>
       </label>
     </div>

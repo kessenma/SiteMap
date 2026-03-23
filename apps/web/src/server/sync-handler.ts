@@ -3,7 +3,7 @@ import { db } from '#/db'
 import { sql } from 'drizzle-orm'
 
 const JWT_SECRET = Buffer.from(process.env.JWT_SECRET!, 'base64')
-const ISSUER = process.env.PROD_API_URL || 'https://sitemap.yourdomain.com'
+const ISSUER = process.env.PROD_API_URL || 'https://sitemap.live'
 
 // Tables that the mobile app is allowed to write to via /api/sync
 const ALLOWED_TABLES = new Set([

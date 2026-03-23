@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Badge } from '#/components/ui/badge'
-import { CheckCircle2, RotateCcw, ImagePlus, Send } from 'lucide-react'
+import { CheckCircle2, RotateCcw, ImagePlus, Send, Loader2 } from 'lucide-react'
 import { CommentReactions } from './CommentReactions'
 
 type Reply = {
@@ -37,6 +37,25 @@ type Comment = {
   photos: Photo[]
 }
 
+function CommentPhoto({ photo }: { photo: Photo }) {
+  const [loaded, setLoaded] = useState(false)
+  return (
+    <div className="relative h-16 w-16 shrink-0">
+      {!loaded && (
+        <div className="absolute inset-0 rounded border border-border bg-muted flex items-center justify-center">
+          <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+        </div>
+      )}
+      <img
+        src={`/api/files?path=${encodeURIComponent(photo.fileUri)}`}
+        alt={photo.fileName}
+        className={`h-16 w-16 rounded border border-border object-cover cursor-pointer hover:opacity-80 ${loaded ? '' : 'hidden'}`}
+        onLoad={() => setLoaded(true)}
+      />
+    </div>
+  )
+}
+
 export function CommentThread({
   comment,
   onReply,
@@ -50,15 +69,28 @@ export function CommentThread({
   onToggleReaction: (commentId: string, emoji: string) => void
   onResolve: (commentId: string) => void
   onReopen: (commentId: string) => void
-  onAddPhoto: (commentId: string, file: File) => void
+  onAddPhoto: (commentId: string, file: File) => Promise<void> | void
 }) {
   const [replyText, setReplyText] = useState('')
+  const [uploading, setUploading] = useState(false)
   const isResolved = !!comment.resolvedAt
 
   const handleReply = () => {
     if (!replyText.trim()) return
     onReply(comment.id, replyText.trim())
     setReplyText('')
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      await onAddPhoto(comment.id, file)
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
   }
 
   return (
@@ -82,12 +114,7 @@ export function CommentThread({
       {comment.photos.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           {comment.photos.map((photo) => (
-            <img
-              key={photo.id}
-              src={`/api/files?path=${encodeURIComponent(photo.fileUri)}`}
-              alt={photo.fileName}
-              className="h-16 w-16 rounded border border-border object-cover cursor-pointer hover:opacity-80"
-            />
+            <CommentPhoto key={photo.id} photo={photo} />
           ))}
         </div>
       )}
@@ -129,18 +156,20 @@ export function CommentThread({
       </div>
 
       <div className="flex gap-1.5">
-        <label className="cursor-pointer">
+        <label className={uploading ? 'pointer-events-none' : 'cursor-pointer'}>
           <input
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) onAddPhoto(comment.id, file)
-            }}
+            disabled={uploading}
+            onChange={handleFileChange}
           />
           <span className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground cursor-pointer">
-            <ImagePlus className="h-3 w-3" /> Photo
+            {uploading ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Uploading...</>
+            ) : (
+              <><ImagePlus className="h-3 w-3" /> Photo</>
+            )}
           </span>
         </label>
 

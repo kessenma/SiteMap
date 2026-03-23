@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { Button } from '#/components/ui/button'
@@ -48,6 +48,9 @@ function MapDetailPage() {
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null)
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [selectedListItemId, setSelectedListItemId] = useState<string | null>(null)
+
+  const [expandedComment, setExpandedComment] = useState<string | null>(null)
+  const [expandedPath, setExpandedPath] = useState<string | null>(null)
 
   const [pathPreview, setPathPreview] = useState<{ color: string; strokeWidth: number } | null>(null)
 
@@ -114,6 +117,21 @@ function MapDetailPage() {
   }))
 
   // ── Handlers ──
+
+  const handleModeChange = useCallback((newMode: MapMode) => {
+    setMode(newMode)
+    if (newMode === 'add-list-item') {
+      setSidebarTab('lists')
+      const allLists = listsList ?? []
+      if (!selectedListId && allLists.length > 0) {
+        setSelectedListId(allLists[0].id)
+      }
+    } else if (newMode === 'add-comment') {
+      setSidebarTab('comments')
+    } else if (newMode === 'draw-path') {
+      setSidebarTab('paths')
+    }
+  }, [listsList, selectedListId])
 
   const handleMapClick = (x: number, y: number) => {
     if (mode === 'add-comment') {
@@ -195,7 +213,7 @@ function MapDetailPage() {
             )}
           </div>
         </div>
-        <MapToolbar mode={mode} onModeChange={setMode} />
+        <MapToolbar mode={mode} onModeChange={handleModeChange} />
       </div>
 
       {/* Body */}
@@ -342,31 +360,55 @@ function MapDetailPage() {
             </TabsContent>
 
             <TabsContent value="comments" className="mt-0 space-y-2">
-              {selectedComment ? (
-                <CommentThread
-                  comment={{
-                    ...selectedComment,
-                    replies: selectedReplies ?? [],
-                    reactions: aggregateReactions(selectedReactions ?? []),
-                    photos: selectedCommentPhotos ?? [],
-                  }}
-                  onReply={(cId, content) => actions.addReply({ commentId: cId, content })}
-                  onToggleReaction={(cId, emoji) => actions.toggleReaction(cId, emoji)}
-                  onResolve={(cId) => actions.resolveComment({ commentId: cId })}
-                  onReopen={(cId) => actions.reopenComment({ commentId: cId })}
-                  onAddPhoto={(cId, file) => actions.uploadCommentPhoto(cId, file)}
-                />
+              {selectedComment && expandedComment === selectedCommentId ? (
+                <>
+                  <button type="button" className="text-xs text-muted-foreground hover:text-foreground mb-1" onClick={() => { setExpandedComment(null); setSelectedCommentId(null) }}>
+                    &larr; All comments
+                  </button>
+                  <CommentThread
+                    comment={{
+                      ...selectedComment,
+                      replies: selectedReplies ?? [],
+                      reactions: aggregateReactions(selectedReactions ?? []),
+                      photos: selectedCommentPhotos ?? [],
+                    }}
+                    onReply={(cId, content) => actions.addReply({ commentId: cId, content })}
+                    onToggleReaction={(cId, emoji) => actions.toggleReaction(cId, emoji)}
+                    onResolve={(cId) => actions.resolveComment({ commentId: cId })}
+                    onReopen={(cId) => actions.reopenComment({ commentId: cId })}
+                    onAddPhoto={(cId, file) => actions.uploadCommentPhoto(cId, file)}
+                  />
+                </>
               ) : (
                 (commentsList ?? []).length === 0 ? (
                   <p className="text-xs text-muted-foreground">No comments yet.</p>
                 ) : (
                   (commentsList ?? []).map((c) => (
-                    <button key={c.id} type="button" className="flex w-full items-start gap-2 rounded-lg border border-border p-2 text-left hover:bg-muted/50" onClick={() => setSelectedCommentId(c.id)}>
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`flex w-full items-start gap-2 rounded-lg border p-2 text-left transition-colors ${
+                        selectedCommentId === c.id
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                          : 'border-border hover:bg-muted/50'
+                      }`}
+                      onClick={() => {
+                        if (selectedCommentId === c.id) {
+                          setExpandedComment(c.id)
+                        } else {
+                          setSelectedCommentId(c.id)
+                          setExpandedComment(null)
+                        }
+                      }}
+                    >
                       <span className={`inline-block h-2 w-2 rounded-full mt-1.5 shrink-0 ${c.resolvedAt ? 'bg-green-500' : 'bg-indigo-500'}`} />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs truncate">{c.content}</p>
                         <p className="text-[10px] text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}{c.resolvedAt && ' · Resolved'}</p>
                       </div>
+                      {selectedCommentId === c.id && (
+                        <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">click to open</span>
+                      )}
                     </button>
                   ))
                 )
@@ -374,21 +416,45 @@ function MapDetailPage() {
             </TabsContent>
 
             <TabsContent value="paths" className="mt-0 space-y-2">
-              {selectedPath ? (
-                <PathDetailPanel
-                  path={selectedPath}
-                  onUpdate={(pId, d) => { setPathPreview(null); actions.updatePath({ pathId: pId, ...d }) }}
-                  onDelete={(pId) => { setPathPreview(null); actions.deletePath({ pathId: pId }); setSelectedPathId(null) }}
-                  onPreview={setPathPreview}
-                />
+              {selectedPath && expandedPath === selectedPathId ? (
+                <>
+                  <button type="button" className="text-xs text-muted-foreground hover:text-foreground mb-1" onClick={() => { setExpandedPath(null); setSelectedPathId(null) }}>
+                    &larr; All paths
+                  </button>
+                  <PathDetailPanel
+                    path={selectedPath}
+                    onUpdate={(pId, d) => { setPathPreview(null); actions.updatePath({ pathId: pId, ...d }) }}
+                    onDelete={(pId) => { setPathPreview(null); setExpandedPath(null); actions.deletePath({ pathId: pId }); setSelectedPathId(null) }}
+                    onPreview={setPathPreview}
+                  />
+                </>
               ) : (
                 (pathsList ?? []).length === 0 ? (
                   <p className="text-xs text-muted-foreground">No paths yet.</p>
                 ) : (
                   (pathsList ?? []).map((p) => (
-                    <button key={p.id} type="button" className="flex w-full items-center gap-2 rounded-lg border border-border p-2 text-left hover:bg-muted/50" onClick={() => setSelectedPathId(p.id)}>
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`flex w-full items-center gap-2 rounded-lg border p-2 text-left transition-colors ${
+                        selectedPathId === p.id
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                          : 'border-border hover:bg-muted/50'
+                      }`}
+                      onClick={() => {
+                        if (selectedPathId === p.id) {
+                          setExpandedPath(p.id)
+                        } else {
+                          setSelectedPathId(p.id)
+                          setExpandedPath(null)
+                        }
+                      }}
+                    >
                       <span className="inline-block h-3 w-6 rounded-sm shrink-0" style={{ backgroundColor: p.color }} />
                       <span className="text-xs truncate flex-1">{p.label || 'Untitled path'}</span>
+                      {selectedPathId === p.id && (
+                        <span className="text-[10px] text-muted-foreground shrink-0">click to edit</span>
+                      )}
                     </button>
                   ))
                 )
