@@ -32,7 +32,7 @@ COPY --from=deps /app/package.json /app/package.json
 COPY --from=deps /app/apps/web/node_modules ./node_modules
 COPY --from=build /app/apps/web/dist ./dist
 COPY --from=build /app/apps/web/server.ts ./server.ts
-COPY --from=build /app/apps/web/src/server ./src/server
+COPY --from=build /app/apps/web/src ./src
 COPY --from=build /app/apps/web/package.json ./package.json
 COPY --from=build /app/apps/web/tsconfig.json ./tsconfig.json
 
