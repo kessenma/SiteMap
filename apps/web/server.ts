@@ -36,6 +36,12 @@ async function start() {
     async fetch(req) {
       const url = new URL(req.url)
 
+      // Handle file proxy (serves images from object storage)
+      if (url.pathname === '/api/files' && req.method === 'GET') {
+        const { handleFileProxy } = await import('./src/server/file-proxy')
+        return handleFileProxy(req)
+      }
+
       // Handle file uploads
       if (url.pathname === '/api/upload' && req.method === 'POST') {
         const { handleUpload } = await import('./src/server/upload-handler')
