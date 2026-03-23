@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { generateUUID } from '../utils/uuid';
 import {
   View,
   Text,
@@ -86,7 +87,7 @@ export default function MarkerDetailScreen() {
 
         if (result.assets?.[0]) {
           const asset = result.assets[0];
-          const id = crypto.randomUUID();
+          const id = generateUUID();
           const now = new Date().toISOString();
 
           await execute(

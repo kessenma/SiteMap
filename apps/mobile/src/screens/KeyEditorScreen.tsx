@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { generateUUID } from '../utils/uuid';
 import {
   View,
   Text,
@@ -49,7 +50,7 @@ export default function KeyEditorScreen() {
   const addKey = useCallback(async () => {
     if (!label.trim()) return;
 
-    const id = crypto.randomUUID();
+    const id = generateUUID();
     const now = new Date().toISOString();
 
     await execute(
