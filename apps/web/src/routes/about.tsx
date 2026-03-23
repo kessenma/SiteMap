@@ -14,31 +14,135 @@ function About() {
       <NavBar />
       <main className="mx-auto max-w-4xl px-6 pt-20 pb-16">
       <h1 className="mb-6 text-4xl font-bold text-gray-900">SiteMap</h1>
+      <p className="mb-8 text-lg text-gray-600">
+        An offline-first mobile app for facility inspection and equipment mapping, powered
+        by <a href="https://www.powersync.com" className="font-semibold text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">PowerSync</a> for
+        real-time bidirectional sync between a local SQLite database and PostgreSQL.
+      </p>
 
       <Section title="What is SiteMap?">
+        <p className="mb-4">
+          SiteMap is an offline-first React Native app designed for facility teams who need to document,
+          reference, and manage equipment locations across large industrial spaces &mdash; factory floors,
+          warehouses, and plant facilities where connectivity is unreliable or nonexistent.
+        </p>
         <p>
-          SiteMap is a mobile app designed for facility teams who need to document, reference, and manage
-          equipment locations and responsibilities across large industrial spaces. Whether you're mapping a
-          factory floor, warehouse, or plant facility, SiteMap lets you upload a reference photo, create
-          custom location markers with icons, and maintain detailed records—all offline.
+          Every interaction writes to a local encrypted SQLite database first. PowerSync handles
+          bidirectional sync with PostgreSQL in the background &mdash; the user never waits for a network
+          request. Data created offline syncs automatically when connectivity returns, and changes from
+          other team members stream down in real time.
         </p>
       </Section>
 
       <Section title="The Problem">
         <p className="mb-4">
           Factory shutdowns, facility audits, and infrastructure inspections require teams to document where
-          equipment is located and who's responsible for it. Teams traditionally relied on:
+          equipment is located and who's responsible for it. These environments are exactly where traditional
+          cloud-dependent apps fail:
         </p>
         <ul className="mb-4 list-disc space-y-1 pl-6">
-          <li>Paper checklists and hand-drawn diagrams</li>
-          <li>Printed floor plans with handwritten notes</li>
-          <li>Fragmented spreadsheets and email threads</li>
-          <li>No visibility when connectivity is poor or nonexistent</li>
+          <li>Concrete walls, basements, and remote areas with no cell signal</li>
+          <li>Paper checklists and hand-drawn diagrams that can't be shared</li>
+          <li>Printed floor plans with handwritten notes that get lost</li>
+          <li>Fragmented spreadsheets and email threads with no single source of truth</li>
+          <li>Cloud-only apps that are unusable the moment connectivity drops</li>
         </ul>
         <p>
-          SiteMap replaces this scattered approach with a single source of truth that works offline and syncs
-          when connectivity returns.
+          SiteMap solves this by putting the database on the device. PowerSync ensures every write
+          is local-first and every read comes from SQLite &mdash; the network is used for sync, never
+          as a dependency for core functionality.
         </p>
+      </Section>
+
+      <Section title="Offline-First Architecture (PowerSync)">
+        <p className="mb-4">
+          PowerSync is the backbone of SiteMap's offline-first architecture. It provides bidirectional sync
+          between a local SQLite database on each mobile device and a central PostgreSQL server &mdash; so the
+          app works at full speed with zero connectivity, and syncs transparently when a connection is available.
+        </p>
+        <div className="mb-6 rounded-lg border bg-muted/50 p-4 font-mono text-sm leading-relaxed">
+          <p className="mb-1">Sync Architecture</p>
+          <p className="mb-1 pl-2">{'\u251C\u2500'} Mobile App {'\u2500\u2500\u2192'} Writes to local SQLite (SQLCipher encrypted)</p>
+          <p className="mb-1 pl-2">{'\u251C\u2500'} PowerSync SDK {'\u2500\u2500\u2192'} Queues changes as CRUD transactions</p>
+          <p className="mb-1 pl-2">{'\u251C\u2500'} Upload path {'\u2500\u2500\u2192'} /api/sync/:table {'\u2500\u2500\u2192'} Upsert into PostgreSQL</p>
+          <p className="mb-1 pl-2">{'\u251C\u2500'} Download path {'\u2500\u2500\u2192'} PostgreSQL WAL {'\u2500\u2500\u2192'} PowerSync Server {'\u2500\u2500\u2192'} SQLite</p>
+          <p className="pl-2">{'\u2514\u2500'} File uploads {'\u2500\u2500\u2192'} Queued separately {'\u2500\u2500\u2192'} Background upload to RustFS (S3)</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Self-Hosted PowerSync Server</CardTitle>
+              <CardDescription>Docker-based sync engine</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                The PowerSync sync server runs as a Docker container connecting to PostgreSQL via logical
+                replication. All configuration is committed to the repo:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Edition 3 sync streams with priority ordering</li>
+                <li>WAL-based logical replication (slot + publication)</li>
+                <li>JWT authentication (HS256, 23-hour token lifetime)</li>
+                <li>Auto-cleanup of stale replication slots on restart</li>
+                <li>Health checks and liveness probes</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Sync Streams</CardTitle>
+              <CardDescription>Prioritized data delivery</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                Data is organized into sync streams with priority levels so critical data arrives first:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li><strong>Priority 1:</strong> User profile, facilities, projects, team relationships</li>
+                <li><strong>Priority 2:</strong> Maps, markers, comments, paths, checklists, service requests</li>
+                <li>User-scoped streams for profile and teammate data</li>
+                <li>Global streams for shared facility and project data</li>
+                <li>18 tables synced across 6 streams</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Local-First Writes</CardTitle>
+              <CardDescription>Every write goes to SQLite first</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                The mobile app never waits for a network request to complete a user action:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>All writes go directly to local SQLite (encrypted with SQLCipher)</li>
+                <li>UI updates optimistically &mdash; no loading spinners for data operations</li>
+                <li>Changes queue as CRUD transactions for upload</li>
+                <li>Server upserts are idempotent (ON CONFLICT DO UPDATE)</li>
+                <li>Pending changes survive app restarts and crashes</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Automatic Reconnection</CardTitle>
+              <CardDescription>Resilient sync with smart retry</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2">
+                The PowerSync client handles connectivity changes automatically:
+              </p>
+              <ul className="list-disc space-y-1 pl-6">
+                <li>Exponential backoff on connection failures (1s to 30s max)</li>
+                <li>Network state listener auto-reconnects on connectivity change</li>
+                <li>Token refresh before expiry (23-hour JWT lifetime)</li>
+                <li>File upload queue resumes on reconnect with retry logic</li>
+                <li>Database auto-recovery from SQLite BUSY errors</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
       </Section>
 
       <Section title="Core Features">
@@ -108,34 +212,19 @@ function About() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Offline-First Storage</CardTitle>
+              <CardTitle>Offline-First via PowerSync</CardTitle>
               <CardDescription>Works without connectivity</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="mb-2">
-                All data is stored locally on your device using SQLite (encrypted with SQLCipher on mobile).
-                Work in areas with no connectivity &mdash; everything syncs automatically when you reconnect.
+                Every read and write targets a local SQLite database (encrypted with SQLCipher). PowerSync
+                handles bidirectional sync with PostgreSQL in the background:
               </p>
               <ul className="list-disc space-y-1 pl-6">
+                <li>All 18 data tables synced via prioritized sync streams</li>
                 <li>Background file upload queue with automatic retry</li>
                 <li>Local media cache for offline photo viewing</li>
-                <li>Encrypted local database on mobile devices</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Cloud Sync (PowerSync)</CardTitle>
-              <CardDescription>Sync when connected</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-2">When connectivity is available, your facility data syncs to an external database for:</p>
-              <ul className="list-disc space-y-1 pl-6">
-                <li>Team collaboration</li>
-                <li>Cross-facility analysis</li>
-                <li>Long-term documentation</li>
-                <li>Audit trails</li>
+                <li>Automatic reconnection with exponential backoff</li>
               </ul>
             </CardContent>
           </Card>
@@ -810,17 +899,18 @@ function About() {
           <Card>
             <CardHeader>
               <CardTitle>Sync via PowerSync</CardTitle>
-              <CardDescription>Real-time replication</CardDescription>
+              <CardDescription>Bidirectional real-time replication</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="mb-2">
-                PostgreSQL changes replicate to mobile devices through PowerSync sync streams:
+                PostgreSQL and mobile SQLite stay in sync through a self-hosted PowerSync server:
               </p>
               <ul className="list-disc space-y-1 pl-6">
-                <li>WAL-based logical replication from PostgreSQL</li>
-                <li>Sync streams scoped per user or global</li>
-                <li>All data tables synced automatically</li>
-                <li>Cascade deletes propagate through sync</li>
+                <li><strong>Download:</strong> WAL-based logical replication streams changes to devices</li>
+                <li><strong>Upload:</strong> CRUD transactions sent to /api/sync/:table endpoints</li>
+                <li>Edition 3 sync streams with user-scoped and global buckets</li>
+                <li>Priority ordering ensures critical data (profile, facilities) arrives first</li>
+                <li>Cascade deletes and schema changes propagate through sync</li>
               </ul>
             </CardContent>
           </Card>
