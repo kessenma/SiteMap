@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        VITE_APP_URL: ${VITE_APP_URL:-https://sitemap.live}
     restart: always
     env_file:
       - .env
