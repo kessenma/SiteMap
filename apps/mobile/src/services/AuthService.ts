@@ -57,8 +57,15 @@ class AuthServiceImpl {
   private saveCookies(response: Response) {
     const setCookie = response.headers.get('set-cookie');
     if (setCookie) {
-      this.sessionCookie = setCookie;
-      storage.set(AUTH_CONFIG.STORAGE_KEYS.SESSION, setCookie);
+      // Extract just the name=value pairs from each cookie, stripping attributes
+      // like Path, HttpOnly, Secure, SameSite that shouldn't be sent back
+      const cookieValues = setCookie
+        .split(/,(?=\s*\w+=)/)
+        .map((c) => c.split(';')[0].trim())
+        .filter(Boolean)
+        .join('; ');
+      this.sessionCookie = cookieValues;
+      storage.set(AUTH_CONFIG.STORAGE_KEYS.SESSION, cookieValues);
     }
   }
 
@@ -67,6 +74,7 @@ class AuthServiceImpl {
     storage.remove(AUTH_CONFIG.STORAGE_KEYS.SESSION);
     storage.remove(AUTH_CONFIG.STORAGE_KEYS.USER);
     storage.remove(AUTH_CONFIG.STORAGE_KEYS.TOKEN);
+    this.clearPowerSyncToken();
   }
 
   async signIn(
@@ -158,7 +166,10 @@ class AuthServiceImpl {
         headers: this.getHeaders(),
       });
 
-      if (!res.ok) return null;
+      if (!res.ok) {
+        // Server reachable but session invalid — return cached user if available
+        return this.getCachedUser();
+      }
 
       this.saveCookies(res);
       const data = await res.json();
@@ -169,9 +180,13 @@ class AuthServiceImpl {
       return null;
     } catch {
       // Offline: try to return cached user
-      const cached = storage.getString(AUTH_CONFIG.STORAGE_KEYS.USER);
-      return cached ? JSON.parse(cached) : null;
+      return this.getCachedUser();
     }
+  }
+
+  private getCachedUser(): AuthUser | null {
+    const cached = storage.getString(AUTH_CONFIG.STORAGE_KEYS.USER);
+    return cached ? JSON.parse(cached) : null;
   }
 
   async enableTotp(): Promise<TotpEnableResponse | { error: string }> {
@@ -218,6 +233,87 @@ class AuthServiceImpl {
     } catch {
       return { error: 'Verification failed' };
     }
+  }
+
+  /**
+   * Fetch a PowerSync-compatible JWT for the current user.
+   * Called after login to initialize PowerSync sync.
+   */
+  async getMobileToken(email: string, password: string): Promise<{ token: string } | { error: string }> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/auth/mobile-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': 'sitemap-mobile://',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { error: data.error || 'Failed to get token' };
+      }
+
+      if (data.token) {
+        storage.set('powersync_token', data.token);
+        return { token: data.token };
+      }
+      return { error: 'No token in response' };
+    } catch {
+      return { error: 'Network error' };
+    }
+  }
+
+  /**
+   * Refresh the PowerSync JWT using the stored token.
+   */
+  async refreshMobileToken(): Promise<{ token: string } | { error: string }> {
+    const currentToken = storage.getString('powersync_token');
+    if (!currentToken) return { error: 'No token to refresh' };
+
+    try {
+      const res = await fetch(`${this.baseUrl}/api/auth/refresh-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentToken}`,
+          'Origin': 'sitemap-mobile://',
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { error: data.error || 'Refresh failed' };
+      }
+
+      if (data.token) {
+        storage.set('powersync_token', data.token);
+        return { token: data.token };
+      }
+      return { error: 'No token in response' };
+    } catch {
+      return { error: 'Network error' };
+    }
+  }
+
+  /**
+   * Synchronously read cached user from MMKV (no network).
+   * Used to restore auth state instantly on app launch.
+   */
+  getCachedUserSync(): AuthUser | null {
+    return this.getCachedUser();
+  }
+
+  /**
+   * Get the stored PowerSync token (for PowerSync connector).
+   */
+  getPowerSyncToken(): string | null {
+    return storage.getString('powersync_token') ?? null;
+  }
+
+  private clearPowerSyncToken() {
+    storage.remove('powersync_token');
   }
 }
 

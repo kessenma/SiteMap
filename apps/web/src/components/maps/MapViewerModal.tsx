@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '#/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
@@ -6,22 +6,6 @@ import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 import { Building2, ExternalLink, Loader2 } from 'lucide-react'
-import {
-  getMap,
-  createMapComment,
-  createCommentReply,
-  toggleCommentReaction,
-  resolveComment,
-  reopenComment,
-  addCommentPhoto,
-  createMapPath,
-  updateMapPath,
-  deleteMapPath,
-  createMapList,
-  createMapListItem,
-  updateListItemStatus,
-  addListItemPhoto,
-} from '#/server/db-queries'
 import { MapViewer } from './MapViewer'
 import { MapToolbar } from './MapToolbar'
 import { MarkerDetailPanel } from './MarkerDetailPanel'
@@ -31,9 +15,19 @@ import { PathDetailPanel } from './PathDetailPanel'
 import { LocationListPanel } from './LocationListPanel'
 import { ListItemDetail } from './ListItemDetail'
 import type { MapMode } from './map-constants'
-import { PATH_COLORS } from './map-constants'
-
-type MapDetail = Awaited<ReturnType<typeof getMap>>
+import { PATH_COLORS, PATH_WIDTHS, DEFAULT_PATH_WIDTH } from './map-constants'
+import {
+  useMapMeta,
+  useMapComments,
+  useMapPaths,
+  useMapLists,
+  useAllListItems,
+  useAllListItemPhotos,
+  useCommentReplies,
+  useCommentReactions,
+  useCommentPhotos,
+  useMapActions,
+} from '#/hooks/useMapData'
 
 export function MapViewerModal({
   mapId,
@@ -42,8 +36,6 @@ export function MapViewerModal({
   mapId: string | null
   onClose: () => void
 }) {
-  const [map, setMap] = useState<MapDetail | null>(null)
-  const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<MapMode>('select')
   const [sidebarTab, setSidebarTab] = useState('legend')
 
@@ -54,6 +46,13 @@ export function MapViewerModal({
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
   const [selectedListItemId, setSelectedListItemId] = useState<string | null>(null)
 
+  // Drill-in state (first click highlights, second click expands detail)
+  const [expandedComment, setExpandedComment] = useState<string | null>(null)
+  const [expandedPath, setExpandedPath] = useState<string | null>(null)
+
+  // Live preview overrides for path editing
+  const [pathPreview, setPathPreview] = useState<{ color: string; strokeWidth: number } | null>(null)
+
   // New comment dialog
   const [pendingComment, setPendingComment] = useState<{ x: number; y: number } | null>(null)
   const [commentText, setCommentText] = useState('')
@@ -62,54 +61,79 @@ export function MapViewerModal({
   const [pendingPath, setPendingPath] = useState<{ x: number; y: number }[] | null>(null)
   const [pathLabel, setPathLabel] = useState('')
   const [pathColor, setPathColor] = useState('#3B82F6')
+  const [pathWidth, setPathWidth] = useState(DEFAULT_PATH_WIDTH)
 
   // New list item dialog
   const [pendingListItem, setPendingListItem] = useState<{ x: number; y: number } | null>(null)
   const [listItemLabel, setListItemLabel] = useState('')
   const [listItemDesc, setListItemDesc] = useState('')
 
-  const loadMap = useCallback(async (id: string) => {
-    setLoading(true)
-    try {
-      const result = await getMap({ data: { mapId: id } })
-      setMap(result)
-    } catch (err) {
-      console.error('Failed to load map:', err)
-      setMap(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  // ── TanStack DB: metadata + live collections ──
 
+  const { meta, loading } = useMapMeta(mapId)
+  const activeMapId = mapId ?? ''
+
+  // Live queries (only active when mapId is set)
+  const { data: commentsList } = useMapComments(activeMapId)
+  const { data: pathsList } = useMapPaths(activeMapId)
+  const { data: listsList } = useMapLists(activeMapId)
+  const { data: allItemsList } = useAllListItems(activeMapId)
+  const { data: allItemPhotosList } = useAllListItemPhotos(activeMapId)
+
+  // Filtered queries for selected items
+  const { data: selectedReplies } = useCommentReplies(activeMapId, selectedCommentId)
+  const { data: selectedReactions } = useCommentReactions(activeMapId, selectedCommentId)
+  const { data: selectedCommentPhotos } = useCommentPhotos(activeMapId, selectedCommentId)
+
+  // Actions
+  const actions = useMapActions(activeMapId)
+
+  // Reset selections when mapId changes
   useEffect(() => {
-    if (!mapId) {
-      setMap(null)
-      setSelectedMarkerId(null)
-      return
-    }
+    if (!mapId) return
     setSelectedMarkerId(null)
     setSelectedCommentId(null)
     setSelectedPathId(null)
     setSelectedListItemId(null)
-    loadMap(mapId)
-  }, [mapId, loadMap])
+    setExpandedComment(null)
+    setExpandedPath(null)
+  }, [mapId])
 
-  const reload = () => { if (mapId) loadMap(mapId) }
+  // ── Derived state ──
 
-  const keyMap = map ? new Map(map.keys.map((k) => [k.id, k])) : new Map()
-  const selectedMarker = map?.markers.find((m) => m.id === selectedMarkerId) ?? null
-  const selectedComment = map?.comments?.find((c) => c.id === selectedCommentId) ?? null
-  const selectedPath = map?.paths?.find((p) => p.id === selectedPathId) ?? null
+  const keyMap = meta ? new Map(meta.keys.map((k) => [k.id, k])) : new Map()
+  const selectedMarker = meta?.markers.find((m) => m.id === selectedMarkerId) ?? null
+  const comments = useMemo(() => commentsList ?? [], [commentsList])
+  const selectedComment = comments.find((c) => c.id === selectedCommentId) ?? null
+  const paths = useMemo(() => pathsList ?? [], [pathsList])
+  const selectedPath = paths.find((p) => p.id === selectedPathId) ?? null
 
-  // Flatten list items for map rendering
-  const allListItems = map?.lists?.flatMap((l) =>
-    l.items.map((item) => ({ ...item, listId: l.id })),
-  ) ?? []
+  // Flatten list items with listId for map rendering
+  const allListItems = useMemo(() => (allItemsList ?? []).map((item) => ({ ...item, listId: item.listId })), [allItemsList])
   const selectedListItem = allListItems.find((i) => i.id === selectedListItemId) ?? null
 
-  // ── Handlers ──────────────────────────────────────────────────────
+  // Paths with preview overrides for MapViewer
+  const viewerPaths = useMemo(() =>
+    paths.map((p) =>
+      p.id === selectedPathId && pathPreview
+        ? { ...p, color: pathPreview.color, strokeWidth: pathPreview.strokeWidth }
+        : p
+    ), [paths, selectedPathId, pathPreview])
 
-  const handleMapClick = (x: number, y: number) => {
+  // Reconstruct nested lists for LocationListPanel
+  const listsWithItems = (listsList ?? []).map((l) => ({
+    ...l,
+    items: (allItemsList ?? [])
+      .filter((i) => i.listId === l.id)
+      .map((i) => ({
+        ...i,
+        photos: (allItemPhotosList ?? []).filter((p) => p.listItemId === i.id),
+      })),
+  }))
+
+  // ── Handlers ──
+
+  const handleMapClick = useCallback((x: number, y: number) => {
     if (mode === 'add-comment') {
       setPendingComment({ x, y })
       setCommentText('')
@@ -118,117 +142,68 @@ export function MapViewerModal({
       setListItemLabel('')
       setListItemDesc('')
     }
-  }
+  }, [mode, selectedListId])
 
-  const handleSaveComment = async () => {
+  const handleSaveComment = () => {
     if (!pendingComment || !commentText.trim() || !mapId) return
-    await createMapComment({ data: { mapId, x: pendingComment.x, y: pendingComment.y, content: commentText.trim() } })
+    actions.addComment({ x: pendingComment.x, y: pendingComment.y, content: commentText.trim() })
     setPendingComment(null)
     setCommentText('')
-    reload()
     setSidebarTab('comments')
   }
 
-  const handlePathDraw = (points: { x: number; y: number }[]) => {
+  const handleMarkerSelect = useCallback((m: any) => {
+    setSelectedMarkerId(m?.id ?? null)
+    if (m) { setSelectedCommentId(null); setSelectedPathId(null); setSelectedListItemId(null) }
+  }, [])
+
+  const handleCommentSelect = useCallback((c: any) => {
+    setSelectedCommentId(c?.id ?? null)
+    if (c) { setSelectedMarkerId(null); setSelectedPathId(null); setSelectedListItemId(null) }
+  }, [])
+
+  const handlePathSelect = useCallback((id: string | null) => {
+    setSelectedPathId(id)
+    if (id) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedListItemId(null) }
+  }, [])
+
+  const handleListItemSelect = useCallback((i: any) => {
+    setSelectedListItemId(i?.id ?? null)
+    if (i) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedPathId(null) }
+  }, [])
+
+  const handlePathDraw = useCallback((points: { x: number; y: number }[]) => {
     setPendingPath(points)
     setPathLabel('')
     setPathColor('#3B82F6')
-  }
+    setPathWidth(DEFAULT_PATH_WIDTH)
+  }, [])
 
-  const handleSavePath = async () => {
+  const handleSavePath = () => {
     if (!pendingPath || !mapId) return
-    await createMapPath({
-      data: {
-        mapId,
-        label: pathLabel,
-        color: pathColor,
-        strokeWidth: 2,
-        pathData: JSON.stringify(pendingPath),
-      },
+    actions.addPath({
+      label: pathLabel,
+      color: pathColor,
+      strokeWidth: pathWidth,
+      pathData: JSON.stringify(pendingPath),
     })
     setPendingPath(null)
-    reload()
     setSidebarTab('paths')
   }
 
-  const handleSaveListItem = async () => {
+  const handleSaveListItem = () => {
     if (!pendingListItem || !selectedListId) return
-    const list = map?.lists?.find((l) => l.id === selectedListId)
+    const list = listsWithItems.find((l) => l.id === selectedListId)
     const nextOrder = (list?.items.length ?? 0) + 1
-    await createMapListItem({
-      data: {
-        listId: selectedListId,
-        x: pendingListItem.x,
-        y: pendingListItem.y,
-        label: listItemLabel || `Item ${nextOrder}`,
-        description: listItemDesc,
-        sortOrder: nextOrder,
-      },
+    actions.addListItem({
+      listId: selectedListId,
+      x: pendingListItem.x,
+      y: pendingListItem.y,
+      label: listItemLabel || `Item ${nextOrder}`,
+      description: listItemDesc,
+      sortOrder: nextOrder,
     })
     setPendingListItem(null)
-    reload()
-  }
-
-  const handleCommentReply = async (commentId: string, content: string) => {
-    await createCommentReply({ data: { commentId, content } })
-    reload()
-  }
-
-  const handleToggleReaction = async (commentId: string, emoji: string) => {
-    await toggleCommentReaction({ data: { commentId, emoji } })
-    reload()
-  }
-
-  const handleResolve = async (commentId: string) => {
-    await resolveComment({ data: { commentId } })
-    reload()
-  }
-
-  const handleReopen = async (commentId: string) => {
-    await reopenComment({ data: { commentId } })
-    reload()
-  }
-
-  const handleCommentPhoto = async (commentId: string, file: File) => {
-    const form = new FormData()
-    form.append('file', file)
-    form.append('folder', 'comment-photos')
-    const res = await fetch('/api/upload', { method: 'POST', body: form })
-    const data = await res.json()
-    await addCommentPhoto({ data: { commentId, fileUri: data.filePath, fileName: file.name, fileSize: file.size } })
-    reload()
-  }
-
-  const handleUpdatePath = async (pathId: string, data: { label: string; color: string; strokeWidth: number }) => {
-    await updateMapPath({ data: { pathId, ...data } })
-    reload()
-  }
-
-  const handleDeletePath = async (pathId: string) => {
-    await deleteMapPath({ data: { pathId } })
-    setSelectedPathId(null)
-    reload()
-  }
-
-  const handleCreateList = async (name: string, description: string) => {
-    if (!mapId) return
-    await createMapList({ data: { mapId, name, description } })
-    reload()
-  }
-
-  const handleUpdateItemStatus = async (itemId: string, status: string) => {
-    await updateListItemStatus({ data: { itemId, status } })
-    reload()
-  }
-
-  const handleListItemPhoto = async (itemId: string, file: File) => {
-    const form = new FormData()
-    form.append('file', file)
-    form.append('folder', 'list-photos')
-    const res = await fetch('/api/upload', { method: 'POST', body: form })
-    const data = await res.json()
-    await addListItemPhoto({ data: { listItemId: itemId, fileUri: data.filePath, fileName: file.name, fileSize: file.size, caption: '' } })
-    reload()
   }
 
   // Auto-switch sidebar tab on selection
@@ -254,31 +229,31 @@ export function MapViewerModal({
           </div>
         )}
 
-        {!loading && map && (
+        {!loading && meta && (
           <>
             {/* Header */}
             <DialogHeader>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <DialogTitle>{map.name}</DialogTitle>
+                  <DialogTitle>{meta.name}</DialogTitle>
                   <DialogDescription>
                     <span className="flex items-center gap-3">
-                      {map.facilityName && (
+                      {meta.facilityName && (
                         <span className="inline-flex items-center gap-1">
                           <Building2 className="h-3 w-3" />
-                          {map.facilityName}
+                          {meta.facilityName}
                         </span>
                       )}
-                      {map.projectName && (
-                        <span>{map.projectName}</span>
+                      {meta.projectName && (
+                        <span>{meta.projectName}</span>
                       )}
-                      {map.description && (
-                        <span className="truncate">{map.description}</span>
+                      {meta.description && (
+                        <span className="truncate">{meta.description}</span>
                       )}
                     </span>
                   </DialogDescription>
                 </div>
-                <Link to="/maps/$mapId" params={{ mapId: map.id }}>
+                <Link to="/maps/$mapId" params={{ mapId: meta.id }}>
                   <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
                     <ExternalLink className="h-3.5 w-3.5" />
                     Open page
@@ -294,40 +269,29 @@ export function MapViewerModal({
             <div className="flex flex-1 gap-4 overflow-hidden min-h-0">
               {/* Map */}
               <div className="flex-1 overflow-auto relative">
-                {map.signedUrl ? (
+                {meta.signedUrl ? (
                   <MapViewer
-                    signedUrl={map.signedUrl}
-                    fileType={map.fileType}
-                    width={map.width}
-                    height={map.height}
-                    markers={map.markers}
-                    keys={map.keys}
+                    signedUrl={meta.signedUrl}
+                    fileType={meta.fileType!}
+                    width={meta.width!}
+                    height={meta.height!}
+                    markers={meta.markers}
+                    keys={meta.keys}
                     selectedMarkerId={selectedMarkerId}
-                    onMarkerSelect={(m) => {
-                      setSelectedMarkerId(m?.id ?? null)
-                      if (m) { setSelectedCommentId(null); setSelectedPathId(null); setSelectedListItemId(null) }
-                    }}
+                    onMarkerSelect={handleMarkerSelect}
                     mode={mode}
                     onMapClick={handleMapClick}
-                    comments={map.comments ?? []}
+                    comments={comments}
                     selectedCommentId={selectedCommentId}
-                    onCommentSelect={(c) => {
-                      setSelectedCommentId(c?.id ?? null)
-                      if (c) { setSelectedMarkerId(null); setSelectedPathId(null); setSelectedListItemId(null) }
-                    }}
-                    paths={map.paths ?? []}
+                    onCommentSelect={handleCommentSelect}
+                    paths={viewerPaths}
                     selectedPathId={selectedPathId}
-                    onPathSelect={(id) => {
-                      setSelectedPathId(id)
-                      if (id) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedListItemId(null) }
-                    }}
+                    onPathSelect={handlePathSelect}
                     onPathDraw={handlePathDraw}
+                    pendingPath={pendingPath ? { points: pendingPath, color: pathColor, strokeWidth: pathWidth } : null}
                     listItems={allListItems}
                     selectedListItemId={selectedListItemId}
-                    onListItemSelect={(i) => {
-                      setSelectedListItemId(i?.id ?? null)
-                      if (i) { setSelectedMarkerId(null); setSelectedCommentId(null); setSelectedPathId(null) }
-                    }}
+                    onListItemSelect={handleListItemSelect}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -367,6 +331,27 @@ export function MapViewerModal({
                           style={{ backgroundColor: c, borderColor: c === pathColor ? '#000' : '#d1d5db' }}
                           onClick={() => setPathColor(c)}
                         />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-xs text-muted-foreground shrink-0">Width:</span>
+                      {PATH_WIDTHS.map((w) => (
+                        <button
+                          key={w}
+                          type="button"
+                          className="flex items-center justify-center h-6 rounded border text-xs px-1.5"
+                          style={{ borderColor: w === pathWidth ? '#3B82F6' : '#d1d5db' }}
+                          onClick={() => setPathWidth(w)}
+                        >
+                          <span
+                            className="rounded-full"
+                            style={{
+                              width: `${Math.max(w, 2)}px`,
+                              height: `${Math.max(w, 2)}px`,
+                              backgroundColor: pathColor,
+                            }}
+                          />
+                        </button>
                       ))}
                     </div>
                     <div className="flex gap-2">
@@ -416,7 +401,7 @@ export function MapViewerModal({
                   <TabsList className="w-full mb-2">
                     <TabsTrigger value="legend" className="flex-1 text-xs">Legend</TabsTrigger>
                     <TabsTrigger value="comments" className="flex-1 text-xs">
-                      Comments{map.comments && map.comments.length > 0 ? ` (${map.comments.length})` : ''}
+                      Comments{(commentsList ?? []).length > 0 ? ` (${(commentsList ?? []).length})` : ''}
                     </TabsTrigger>
                     <TabsTrigger value="paths" className="flex-1 text-xs">Paths</TabsTrigger>
                     <TabsTrigger value="lists" className="flex-1 text-xs">Lists</TabsTrigger>
@@ -425,14 +410,14 @@ export function MapViewerModal({
 
                   {/* Legend tab */}
                   <TabsContent value="legend" className="mt-0">
-                    {map.keys.length > 0 && (
+                    {meta.keys.length > 0 && (
                       <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm">Legend</CardTitle>
                         </CardHeader>
                         <CardContent className="grid gap-1.5">
-                          {map.keys.map((key) => {
-                            const markerCount = map.markers.filter((m) => m.keyId === key.id).length
+                          {meta.keys.map((key) => {
+                            const markerCount = meta.markers.filter((m) => m.keyId === key.id).length
                             return (
                               <div key={key.id} className="flex items-center gap-2">
                                 <KeyIconPreview
@@ -456,39 +441,58 @@ export function MapViewerModal({
                       </Card>
                     )}
                     <p className="mt-3 text-xs text-muted-foreground">
-                      {map.markers.length} marker{map.markers.length !== 1 ? 's' : ''}
+                      {meta.markers.length} marker{meta.markers.length !== 1 ? 's' : ''}
                     </p>
                   </TabsContent>
 
                   {/* Comments tab */}
                   <TabsContent value="comments" className="mt-0 space-y-2">
-                    {selectedComment ? (
-                      <CommentThread
-                        comment={{
-                          ...selectedComment,
-                          replies: selectedComment.replies ?? [],
-                          reactions: aggregateReactions(selectedComment.reactions ?? [], ''),
-                          photos: selectedComment.photos ?? [],
-                        }}
-                        onReply={handleCommentReply}
-                        onToggleReaction={handleToggleReaction}
-                        onResolve={handleResolve}
-                        onReopen={handleReopen}
-                        onAddPhoto={handleCommentPhoto}
-                      />
+                    {selectedComment && expandedComment === selectedCommentId ? (
+                      <>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:text-foreground mb-1"
+                          onClick={() => { setExpandedComment(null); setSelectedCommentId(null) }}
+                        >
+                          &larr; All comments
+                        </button>
+                        <CommentThread
+                          comment={{
+                            ...selectedComment,
+                            replies: selectedReplies ?? [],
+                            reactions: aggregateReactions(selectedReactions ?? [], ''),
+                            photos: selectedCommentPhotos ?? [],
+                          }}
+                          onReply={(commentId, content) => actions.addReply({ commentId, content })}
+                          onToggleReaction={(commentId, emoji) => actions.toggleReaction(commentId, emoji)}
+                          onResolve={(commentId) => actions.resolveComment({ commentId })}
+                          onReopen={(commentId) => actions.reopenComment({ commentId })}
+                          onAddPhoto={(commentId, file) => actions.uploadCommentPhoto(commentId, file)}
+                        />
+                      </>
                     ) : (
                       <>
-                        {(map.comments ?? []).length === 0 ? (
+                        {comments.length === 0 ? (
                           <p className="text-xs text-muted-foreground">
                             No comments yet. Use "Comment" mode to pin comments on the map.
                           </p>
                         ) : (
-                          (map.comments ?? []).map((c) => (
+                          comments.map((c) => (
                             <button
                               key={c.id}
                               type="button"
-                              className="flex w-full items-start gap-2 rounded-lg border border-border p-2 text-left hover:bg-muted/50"
-                              onClick={() => setSelectedCommentId(c.id)}
+                              className={`flex w-full items-start gap-2 rounded-lg border p-2 text-left transition-colors ${
+                                selectedCommentId === c.id
+                                  ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                                  : 'border-border hover:bg-muted/50'
+                              }`}
+                              onClick={() => {
+                                if (selectedCommentId === c.id) {
+                                  setExpandedComment(c.id)
+                                } else {
+                                  setSelectedCommentId(c.id)
+                                }
+                              }}
                             >
                               <span className={`inline-block h-2 w-2 rounded-full mt-1.5 shrink-0 ${c.resolvedAt ? 'bg-green-500' : 'bg-indigo-500'}`} />
                               <div className="min-w-0 flex-1">
@@ -498,6 +502,9 @@ export function MapViewerModal({
                                   {c.resolvedAt && ' · Resolved'}
                                 </p>
                               </div>
+                              {selectedCommentId === c.id && (
+                                <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">click to open</span>
+                              )}
                             </button>
                           ))
                         )}
@@ -510,17 +517,22 @@ export function MapViewerModal({
                     {selectedPath ? (
                       <PathDetailPanel
                         path={selectedPath}
-                        onUpdate={handleUpdatePath}
-                        onDelete={handleDeletePath}
+                        onUpdate={(pathId, data) => { setPathPreview(null); actions.updatePath({ pathId, ...data }) }}
+                        onDelete={(pathId) => {
+                          setPathPreview(null)
+                          actions.deletePath({ pathId })
+                          setSelectedPathId(null)
+                        }}
+                        onPreview={setPathPreview}
                       />
                     ) : (
                       <>
-                        {(map.paths ?? []).length === 0 ? (
+                        {(pathsList ?? []).length === 0 ? (
                           <p className="text-xs text-muted-foreground">
                             No paths yet. Use "Draw Path" mode to draw on the map.
                           </p>
                         ) : (
-                          (map.paths ?? []).map((p) => (
+                          (pathsList ?? []).map((p) => (
                             <button
                               key={p.id}
                               type="button"
@@ -542,26 +554,23 @@ export function MapViewerModal({
                   {/* Lists tab */}
                   <TabsContent value="lists" className="mt-0">
                     <LocationListPanel
-                      lists={(map.lists ?? []).map((l) => ({
-                        ...l,
-                        items: l.items.map((i) => ({ ...i, photos: i.photos })),
-                      }))}
+                      lists={listsWithItems}
                       selectedListId={selectedListId}
                       selectedItemId={selectedListItemId}
                       onSelectList={setSelectedListId}
                       onSelectItem={setSelectedListItemId}
-                      onCreateList={handleCreateList}
-                      onUpdateItemStatus={handleUpdateItemStatus}
+                      onCreateList={(name, desc) => actions.addList({ name, description: desc })}
+                      onUpdateItemStatus={(itemId, status) => actions.updateItemStatus({ itemId, status })}
                     />
                     {selectedListItem && (
                       <div className="mt-2">
                         <ListItemDetail
                           item={{
                             ...selectedListItem,
-                            photos: selectedListItem.photos,
+                            photos: (allItemPhotosList ?? []).filter((p) => p.listItemId === selectedListItem.id),
                           }}
-                          onUpdateStatus={handleUpdateItemStatus}
-                          onAddPhoto={handleListItemPhoto}
+                          onUpdateStatus={(itemId, status) => actions.updateItemStatus({ itemId, status })}
+                          onAddPhoto={(itemId, file) => actions.uploadListItemPhoto(itemId, file)}
                         />
                       </div>
                     )}
@@ -576,7 +585,7 @@ export function MapViewerModal({
                       />
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        {map.markers.length > 0
+                        {meta.markers.length > 0
                           ? 'Click a marker to see details.'
                           : 'No markers on this map yet.'}
                       </p>
@@ -588,7 +597,7 @@ export function MapViewerModal({
           </>
         )}
 
-        {!loading && !map && mapId && (
+        {!loading && !meta && mapId && (
           <div className="flex flex-1 items-center justify-center text-muted-foreground">
             Map not found.
           </div>

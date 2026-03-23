@@ -18,6 +18,7 @@ import AddFacilityScreen from '../screens/AddFacilityScreen';
 import MapViewerScreen from '../screens/MapViewerScreen';
 import KeyEditorScreen from '../screens/KeyEditorScreen';
 import MarkerDetailScreen from '../screens/MarkerDetailScreen';
+import ITServiceRequestScreen from '../screens/ITServiceRequestScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 
@@ -28,6 +29,7 @@ export type RootStackParamList = {
   MapViewer: { mapId: string; mapName: string };
   KeyEditor: { mapId: string };
   MarkerDetail: { markerId: string; markerLabel: string };
+  ITServiceRequest: { mapId: string; mapName: string };
 };
 
 export type TabParamList = {
@@ -204,6 +206,11 @@ export default function MainNavigator() {
           name="MarkerDetail"
           component={MarkerDetailScreen}
           options={({ route }) => ({ title: route.params.markerLabel })}
+        />
+        <Stack.Screen
+          name="ITServiceRequest"
+          component={ITServiceRequestScreen}
+          options={({ route }) => ({ title: `Request · ${route.params.mapName}` })}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -2,52 +2,53 @@ import React, { ReactNode } from 'react';
 import { Text, TextStyle, StyleSheet } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
-interface TypographyProps {
+export interface TypographyProps {
   children: ReactNode;
   style?: TextStyle;
   color?: 'primary' | 'secondary' | 'danger' | 'success';
+  numberOfLines?: number;
 }
 
-export function H1({ children, style, color }: TypographyProps) {
+export function H1({ children, style, color, numberOfLines }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.h1, { color: getColor(colors, color) ?? colors.text }, style]}>
+    <Text numberOfLines={numberOfLines} style={[styles.h1, { color: getColor(colors, color) ?? colors.text }, style]}>
       {children}
     </Text>
   );
 }
 
-export function H2({ children, style, color }: TypographyProps) {
+export function H2({ children, style, color, numberOfLines }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.h2, { color: getColor(colors, color) ?? colors.text }, style]}>
+    <Text numberOfLines={numberOfLines} style={[styles.h2, { color: getColor(colors, color) ?? colors.text }, style]}>
       {children}
     </Text>
   );
 }
 
-export function H3({ children, style, color }: TypographyProps) {
+export function H3({ children, style, color, numberOfLines }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.h3, { color: getColor(colors, color) ?? colors.text }, style]}>
+    <Text numberOfLines={numberOfLines} style={[styles.h3, { color: getColor(colors, color) ?? colors.text }, style]}>
       {children}
     </Text>
   );
 }
 
-export function Body({ children, style, color }: TypographyProps) {
+export function Body({ children, style, color, numberOfLines }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.body, { color: getColor(colors, color) ?? colors.text }, style]}>
+    <Text numberOfLines={numberOfLines} style={[styles.body, { color: getColor(colors, color) ?? colors.text }, style]}>
       {children}
     </Text>
   );
 }
 
-export function Caption({ children, style, color }: TypographyProps) {
+export function Caption({ children, style, color, numberOfLines }: TypographyProps) {
   const { colors } = useTheme();
   return (
-    <Text style={[styles.caption, { color: getColor(colors, color) ?? colors.textSecondary }, style]}>
+    <Text numberOfLines={numberOfLines} style={[styles.caption, { color: getColor(colors, color) ?? colors.textSecondary }, style]}>
       {children}
     </Text>
   );

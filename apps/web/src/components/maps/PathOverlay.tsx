@@ -10,10 +10,12 @@ export function PathOverlay({
   paths,
   selectedPathId,
   onSelect,
+  flashKey,
 }: {
   paths: MapPath[]
   selectedPathId?: string | null
   onSelect?: (pathId: string | null) => void
+  flashKey?: number
 }) {
   return (
     <g className="paths-layer">
@@ -46,17 +48,19 @@ export function PathOverlay({
                 onSelect?.(path.id)
               }}
             />
-            {/* Visible line */}
-            <polyline
-              points={pointsStr}
-              fill="none"
-              stroke={path.color}
-              strokeWidth={path.strokeWidth}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={isSelected ? 1 : 0.7}
-              className="pointer-events-none"
-            />
+            {/* Flash glow on selection */}
+            {isSelected && (
+              <polyline
+                key={flashKey}
+                points={pointsStr}
+                fill="none"
+                stroke={path.color}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="path-flash-line pointer-events-none"
+                style={{ '--flash-width': `${path.strokeWidth + 12}px` } as React.CSSProperties}
+              />
+            )}
             {/* Selection outline */}
             {isSelected && (
               <polyline
@@ -70,6 +74,17 @@ export function PathOverlay({
                 className="pointer-events-none"
               />
             )}
+            {/* Visible line */}
+            <polyline
+              points={pointsStr}
+              fill="none"
+              stroke={path.color}
+              strokeWidth={path.strokeWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={isSelected ? 1 : 0.7}
+              className="pointer-events-none"
+            />
             {/* Label */}
             {path.label && mid && (
               <text

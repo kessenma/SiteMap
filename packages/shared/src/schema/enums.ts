@@ -26,3 +26,6 @@ export type ReactionEmoji = z.infer<typeof reactionEmojiEnum>;
 
 export const listItemStatusEnum = z.enum(['pending', 'in_progress', 'completed']);
 export type ListItemStatus = z.infer<typeof listItemStatusEnum>;
+
+export const serviceRequestStatusEnum = z.enum(['open', 'in_progress', 'resolved', 'closed']);
+export type ServiceRequestStatus = z.infer<typeof serviceRequestStatusEnum>;

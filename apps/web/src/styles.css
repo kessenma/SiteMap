@@ -177,3 +177,37 @@ body {
     @apply font-sans;
   }
 }
+
+/* ── Map pin / path selection animations ── */
+
+@keyframes ping-ring {
+  0% {
+    r: 6;
+    opacity: 0.8;
+    stroke-width: 3;
+  }
+  100% {
+    r: 28;
+    opacity: 0;
+    stroke-width: 0.5;
+  }
+}
+
+.comment-ping-ring {
+  animation: ping-ring 0.8s ease-out forwards;
+}
+
+@keyframes path-flash {
+  0% {
+    opacity: 0.9;
+    stroke-width: var(--flash-width, 10);
+  }
+  100% {
+    opacity: 0;
+    stroke-width: var(--flash-width, 10);
+  }
+}
+
+.path-flash-line {
+  animation: path-flash 0.7s ease-out forwards;
+}

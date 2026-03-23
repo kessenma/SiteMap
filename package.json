@@ -20,7 +20,8 @@
     "db:generate": "pnpm --filter @sitemap/web exec drizzle-kit generate",
     "db:migrate": "export $(grep -v '^#' .env | xargs) && pnpm --filter @sitemap/web exec drizzle-kit migrate",
     "db:push": "export $(grep -v '^#' .env | xargs) && pnpm --filter @sitemap/web exec drizzle-kit push",
-    "db:studio": "export $(grep -v '^#' .env | xargs) && pnpm --filter @sitemap/web exec drizzle-kit studio"
+    "db:studio": "export $(grep -v '^#' .env | xargs) && pnpm --filter @sitemap/web exec drizzle-kit studio",
+    "devtools": "cd devtools && npm install && node server.mjs"
   },
   "devDependencies": {
     "eslint": "^9.20.1",

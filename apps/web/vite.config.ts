@@ -111,6 +111,44 @@ function apiMiddleware(): Plugin {
           return
         }
 
+        // Handle PowerSync sync mutations (PUT/DELETE /api/sync/:table)
+        if (req.url?.startsWith('/api/sync/') && (req.method === 'PUT' || req.method === 'DELETE')) {
+          const protocol = 'http'
+          const host = req.headers.host || 'localhost:3000'
+          const url = new URL(req.url, `${protocol}://${host}`)
+          const headers = new Headers()
+          for (const [key, val] of Object.entries(req.headers)) {
+            if (val) headers.set(key, Array.isArray(val) ? val.join(', ') : val)
+          }
+
+          const bodyStr = await new Promise<string>((resolve) => {
+            let data = ''
+            req.on('data', (chunk: Buffer) => { data += chunk.toString() })
+            req.on('end', () => resolve(data))
+          })
+
+          const request = new Request(url.toString(), {
+            method: req.method,
+            headers,
+            body: bodyStr,
+          })
+
+          try {
+            const { handleSync } = await server.ssrLoadModule('./src/server/sync-handler.ts')
+            const response = await handleSync(request)
+            res.statusCode = response.status
+            response.headers.forEach((value: string, key: string) => {
+              res.setHeader(key, value)
+            })
+            res.end(await response.text())
+          } catch (err) {
+            console.error('Sync middleware error:', err)
+            res.statusCode = 500
+            res.end(JSON.stringify({ error: 'Sync failed' }))
+          }
+          return
+        }
+
         if (!req.url?.startsWith('/api/auth/')) return next()
 
         // Build a standard Request from Node IncomingMessage

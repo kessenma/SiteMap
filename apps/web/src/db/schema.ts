@@ -13,6 +13,7 @@ import {
   devicePlatformEnum,
   deviceEnvironmentEnum,
   teammateRoleEnum,
+  serviceRequestStatusEnum,
 } from '@sitemap/shared/schema'
 
 export const users = pgTable(TABLE_NAMES.users, {
@@ -334,4 +335,35 @@ export const listItemPhotos = pgTable(TABLE_NAMES.listItemPhotos, {
   createdAt: timestamp(COLUMNS.listItemPhotos.createdAt, { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_list_item_photos_list_item_id').on(table.listItemId),
+])
+
+// ── Service Requests ─────────────────────────────────────────────────
+
+export const serviceRequests = pgTable(TABLE_NAMES.serviceRequests, {
+  id: uuid(COLUMNS.serviceRequests.id).primaryKey().defaultRandom(),
+  mapId: uuid(COLUMNS.serviceRequests.mapId).notNull().references(() => maps.id, { onDelete: 'cascade' }),
+  x: real(COLUMNS.serviceRequests.x).notNull().default(0),
+  y: real(COLUMNS.serviceRequests.y).notNull().default(0),
+  category: text(COLUMNS.serviceRequests.category).notNull(),
+  description: text(COLUMNS.serviceRequests.description).notNull().default(''),
+  status: text(COLUMNS.serviceRequests.status, { enum: serviceRequestStatusEnum.options }).notNull().default('open'),
+  createdBy: text(COLUMNS.serviceRequests.createdBy).references(() => users.id),
+  resolvedBy: text(COLUMNS.serviceRequests.resolvedBy).references(() => users.id),
+  resolvedAt: timestamp(COLUMNS.serviceRequests.resolvedAt, { withTimezone: true }),
+  createdAt: timestamp(COLUMNS.serviceRequests.createdAt, { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp(COLUMNS.serviceRequests.updatedAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_service_requests_map_id').on(table.mapId),
+  index('idx_service_requests_status').on(table.status),
+])
+
+export const serviceRequestPhotos = pgTable(TABLE_NAMES.serviceRequestPhotos, {
+  id: uuid(COLUMNS.serviceRequestPhotos.id).primaryKey().defaultRandom(),
+  serviceRequestId: uuid(COLUMNS.serviceRequestPhotos.serviceRequestId).notNull().references(() => serviceRequests.id, { onDelete: 'cascade' }),
+  fileUri: text(COLUMNS.serviceRequestPhotos.fileUri).notNull().default(''),
+  fileName: text(COLUMNS.serviceRequestPhotos.fileName).notNull().default(''),
+  fileSize: integer(COLUMNS.serviceRequestPhotos.fileSize).notNull().default(0),
+  createdAt: timestamp(COLUMNS.serviceRequestPhotos.createdAt, { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_service_request_photos_request_id').on(table.serviceRequestId),
 ])

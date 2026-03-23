@@ -229,6 +229,36 @@ const list_item_photos = new Table(
   { indexes: { by_list_item: ['list_item_id'] } },
 );
 
+// ── Service Requests ─────────────────────────────────────────────────
+
+const service_requests = new Table(
+  {
+    map_id: column.text,
+    x: column.real,
+    y: column.real,
+    category: column.text,
+    description: column.text,
+    status: column.text, // 'open' | 'in_progress' | 'resolved' | 'closed'
+    created_by: column.text,
+    resolved_by: column.text,
+    resolved_at: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { by_map: ['map_id'], by_status: ['status'] } },
+);
+
+const service_request_photos = new Table(
+  {
+    service_request_id: column.text,
+    file_uri: column.text,
+    file_name: column.text,
+    file_size: column.integer,
+    created_at: column.text,
+  },
+  { indexes: { by_request: ['service_request_id'] } },
+);
+
 // ── User Facilities & Teammates ──────────────────────────────────────
 
 const user_facilities = new Table(
@@ -316,6 +346,8 @@ export const AppSchema = new Schema({
   map_lists,
   map_list_items,
   list_item_photos,
+  service_requests,
+  service_request_photos,
   user_facilities,
   teammates,
   // Local-only tables
@@ -341,5 +373,7 @@ export type ListItemPhotoRecord = Database['list_item_photos'];
 export type UserRecord = Database['users'];
 export type UserFacilityRecord = Database['user_facilities'];
 export type TeammateRecord = Database['teammates'];
+export type ServiceRequestRecord = Database['service_requests'];
+export type ServiceRequestPhotoRecord = Database['service_request_photos'];
 export type FileUploadQueueRecord = Database['file_upload_queue'];
 export type MediaCacheRecord = Database['media_cache'];

@@ -1,26 +1,23 @@
 import { Platform } from 'react-native';
 
-const __DEV__ = process.env.NODE_ENV === 'development';
 const LOCALHOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 
-const devApiBase = process.env.MOBILE_API_URL || `http://${LOCALHOST}:3000`;
-const devPowerSyncUrl = process.env.MOBILE_POWERSYNC_URL || `http://${LOCALHOST}:6061`;
-const prodApiBase = process.env.PROD_API_URL || 'https://sitemap.yourdomain.com';
-const prodPowerSyncUrl = process.env.PROD_POWERSYNC_URL || 'https://sync.sitemap.yourdomain.com';
-
 export const API_CONFIG = {
+  // Local dev URLs — only used if you explicitly switch to DEV
   DEV: {
-    BASE_URL: devApiBase,
-    API_URL: `${devApiBase}/api`,
-    POWERSYNC_URL: devPowerSyncUrl,
+    BASE_URL: `http://${LOCALHOST}:3000`,
+    API_URL: `http://${LOCALHOST}:3000/api`,
+    POWERSYNC_URL: `http://${LOCALHOST}:6061`,
   },
+  // Production — always used (like fajr app)
   PROD: {
-    BASE_URL: prodApiBase,
-    API_URL: `${prodApiBase}/api`,
-    POWERSYNC_URL: prodPowerSyncUrl,
+    BASE_URL: 'https://sitemap.live',
+    API_URL: 'https://sitemap.live/api',
+    POWERSYNC_URL: 'https://sync.sitemap.live',
   },
+  // Always use production
   get current() {
-    return __DEV__ ? this.DEV : this.PROD;
+    return this.PROD;
   },
 };
 

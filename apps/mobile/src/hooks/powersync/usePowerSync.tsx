@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useEffect,
@@ -6,10 +6,11 @@ import React, {
   useCallback,
   ReactNode,
 } from 'react';
-import { AbstractPowerSyncDatabase } from '@powersync/react-native';
+import { AbstractPowerSyncDatabase, SyncStatus } from '@powersync/react-native';
 import {
-  getPowerSyncDatabase,
+  PowerSyncService,
   initializePowerSync,
+  getPowerSyncDatabase,
   disconnectPowerSync,
 } from '../../services/powersync/PowerSyncService';
 
@@ -17,14 +18,26 @@ interface PowerSyncContextValue {
   db: AbstractPowerSyncDatabase | null;
   isReady: boolean;
   isConnected: boolean;
+  isConnecting: boolean;
+  hasSynced: boolean;
+  lastSyncedAt: Date | undefined;
   error: Error | null;
+  reconnect: () => Promise<void>;
+  resetLocalDatabase: () => Promise<void>;
+  getPendingChangesCount: () => Promise<number>;
 }
 
 const PowerSyncContext = createContext<PowerSyncContextValue>({
   db: null,
   isReady: false,
   isConnected: false,
+  isConnecting: false,
+  hasSynced: false,
+  lastSyncedAt: undefined,
   error: null,
+  reconnect: async () => {},
+  resetLocalDatabase: async () => {},
+  getPendingChangesCount: async () => 0,
 });
 
 interface PowerSyncProviderProps {
@@ -36,28 +49,46 @@ export function PowerSyncProvider({ children, getToken }: PowerSyncProviderProps
   const [db, setDb] = useState<AbstractPowerSyncDatabase | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [hasSynced, setHasSynced] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | undefined>();
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
+    const applyStatus = (status: SyncStatus) => {
+      if (cancelled) return;
+      setIsConnected(status.connected);
+      setIsConnecting(status.connecting);
+      setHasSynced(status.hasSynced === true);
+      setLastSyncedAt(status.lastSyncedAt);
+    };
+
     const init = async () => {
       try {
+        const service = PowerSyncService.getInstance();
+
         if (getToken) {
-          const database = await initializePowerSync(getToken);
-          if (!cancelled) {
-            setDb(database);
-            setIsReady(true);
-            setIsConnected(true);
-          }
+          await initializePowerSync(getToken);
         } else {
-          // Offline-only mode: init DB without sync connection
+          // Offline-only mode
           const database = getPowerSyncDatabase();
           await database.init();
-          if (!cancelled) {
-            setDb(database);
-            setIsReady(true);
-          }
+        }
+
+        const database = service.getDatabase();
+        if (!cancelled && database) {
+          setDb(database);
+          setIsReady(true);
+
+          // Read initial status
+          applyStatus(database.currentStatus);
+
+          // Listen for status changes via the service event system
+          service.addEventListener('onSyncStatusChange', (status) => {
+            applyStatus(status);
+          });
         }
       } catch (err) {
         console.error('[PowerSyncProvider] Init error:', err);
@@ -71,12 +102,44 @@ export function PowerSyncProvider({ children, getToken }: PowerSyncProviderProps
 
     return () => {
       cancelled = true;
+      const service = PowerSyncService.getInstance();
+      service.removeEventListener('onSyncStatusChange');
       disconnectPowerSync();
     };
   }, [getToken]);
 
+  const reconnect = useCallback(async () => {
+    await PowerSyncService.getInstance().reconnect();
+  }, []);
+
+  const resetLocalDatabase = useCallback(async () => {
+    await PowerSyncService.getInstance().resetLocalDatabase();
+    // Re-read the new database instance after reset
+    const newDb = PowerSyncService.getInstance().getDatabase();
+    if (newDb) {
+      setDb(newDb);
+    }
+  }, []);
+
+  const getPendingChangesCount = useCallback(async () => {
+    return PowerSyncService.getInstance().getPendingChangesCount();
+  }, []);
+
   return (
-    <PowerSyncContext.Provider value={{ db, isReady, isConnected, error }}>
+    <PowerSyncContext.Provider
+      value={{
+        db,
+        isReady,
+        isConnected,
+        isConnecting,
+        hasSynced,
+        lastSyncedAt,
+        error,
+        reconnect,
+        resetLocalDatabase,
+        getPendingChangesCount,
+      }}
+    >
       {children}
     </PowerSyncContext.Provider>
   );

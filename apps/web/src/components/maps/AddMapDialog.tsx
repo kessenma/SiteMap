@@ -5,7 +5,7 @@ import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '#/components/ui/select'
 import { Upload, X, FileText } from 'lucide-react'
-import { createMap } from '#/server/db-queries'
+import { useMapsListActions } from '#/hooks/useMapData'
 
 export function AddMapDialog({
   open,
@@ -57,6 +57,8 @@ export function AddMapDialog({
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  const mapsActions = useMapsListActions()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !facilityId || !file) return
@@ -79,20 +81,25 @@ export function AddMapDialog({
       const { filePath } = await uploadRes.json()
 
       const fileType = file.type === 'application/pdf' ? 'pdf' : 'image'
-      await createMap({
-        data: {
-          name: name.trim(),
-          description: description.trim(),
-          facilityId,
-          ...(projectId ? { projectId } : {}),
-          fileType,
-          fileUri: filePath,
-          fileName: file.name,
-          fileSize: file.size,
-          width: fileDimensions.width,
-          height: fileDimensions.height,
-        },
+      const facilityName = facilities.find((f) => f.id === facilityId)?.name ?? ''
+      const projectName = projectId ? projects.find((p) => p.id === projectId)?.name : undefined
+
+      // Optimistic action — map appears instantly in the list
+      mapsActions.addMap({
+        name: name.trim(),
+        description: description.trim(),
+        facilityId,
+        ...(projectId ? { projectId } : {}),
+        fileType,
+        fileUri: filePath,
+        fileName: file.name,
+        fileSize: file.size,
+        width: fileDimensions.width,
+        height: fileDimensions.height,
+        facilityName,
+        projectName,
       })
+
       setName('')
       setDescription('')
       setFacilityId(null)

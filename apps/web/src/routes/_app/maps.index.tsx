@@ -4,7 +4,7 @@ import { Card, CardContent } from '#/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import { Button } from '#/components/ui/button'
 import { Map, Building2, Plus } from 'lucide-react'
-import { getMaps, getFacilities, getProjects } from '#/server/db-queries'
+import { getFacilities, getProjects } from '#/server/db-queries'
 import {
   AddFacilityDialog,
   AddMapDialog,
@@ -16,18 +16,23 @@ import {
   FavoriteMaps,
   PersonalMaps,
 } from '#/components/maps'
+import { useMapsList } from '#/hooks/useMapData'
 
 export const Route = createFileRoute('/_app/maps/')({
   loader: async () => {
-    const [maps, facilities, projects] = await Promise.all([getMaps(), getFacilities(), getProjects()])
-    return { maps, facilities, projects }
+    const [facilities, projects] = await Promise.all([getFacilities(), getProjects()])
+    return { facilities, projects }
   },
+  staleTime: 5 * 60_000, // reuse cached loader data for 5 min
   component: Maps,
 })
 
 function Maps() {
-  const { maps, facilities, projects } = Route.useLoaderData()
+  const { facilities, projects } = Route.useLoaderData()
   const router = useRouter()
+
+  // Live maps list from TanStack DB collection
+  const { data: maps } = useMapsList()
   const [selectedFacility, setSelectedFacility] = useState<{ id: string; name: string; address?: string | null } | null>(null)
   const [showAddMenu, setShowAddMenu] = useState(false)
   const [showAddFacility, setShowAddFacility] = useState(false)
@@ -36,13 +41,15 @@ function Maps() {
 
   const hasFacilities = facilities.length > 0
 
-  const mapCountByFacility = maps.reduce<Record<string, number>>((acc, m) => {
+  const mapsList = maps ?? []
+
+  const mapCountByFacility = mapsList.reduce<Record<string, number>>((acc, m) => {
     if (m.facilityName) acc[m.facilityName] = (acc[m.facilityName] || 0) + 1
     return acc
   }, {})
 
   const facilityMaps = selectedFacility
-    ? maps.filter((m) => m.facilityName === selectedFacility.name)
+    ? mapsList.filter((m) => m.facilityName === selectedFacility.name)
     : []
 
   return (
@@ -72,7 +79,7 @@ function Maps() {
         onSelect={setSelectedFacility}
       />
 
-      {maps.length === 0 ? (
+      {mapsList.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Map className="mb-3 h-10 w-10 text-muted-foreground/40" />
@@ -83,7 +90,7 @@ function Maps() {
           </CardContent>
         </Card>
       ) : (
-        <MapsTable maps={maps} onMapSelect={setViewingMapId} />
+        <MapsTable maps={mapsList} onMapSelect={setViewingMapId} />
       )}
 
       {/* "What would you like to add?" chooser */}
@@ -139,7 +146,7 @@ function Maps() {
         onOpenChange={setShowAddMap}
         facilities={facilities}
         projects={projects}
-        onCreated={() => router.invalidate()}
+        onCreated={() => {/* maps list collection handles optimistic update */}}
       />
 
       <FacilityMapsSheet

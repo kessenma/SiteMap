@@ -22,7 +22,21 @@ export const TABLE_NAMES = {
   mapLists: 'map_lists',
   mapListItems: 'map_list_items',
   listItemPhotos: 'list_item_photos',
+  serviceRequests: 'service_requests',
+  serviceRequestPhotos: 'service_request_photos',
 } as const;
+
+export const SERVICE_REQUEST_CATEGORIES = [
+  'Password reset needed',
+  'Broken printer',
+  'Network / Wi-Fi issue',
+  'Software install request',
+  'Hardware malfunction',
+  'Access / permissions issue',
+  'Email not working',
+  'Phone / VoIP issue',
+  'Other',
+] as const;
 
 export const COLUMNS = {
   users: {
@@ -267,6 +281,28 @@ export const COLUMNS = {
     fileName: 'file_name',
     fileSize: 'file_size',
     caption: 'caption',
+    createdAt: 'created_at',
+  },
+  serviceRequests: {
+    id: 'id',
+    mapId: 'map_id',
+    x: 'x',
+    y: 'y',
+    category: 'category',
+    description: 'description',
+    status: 'status',
+    createdBy: 'created_by',
+    resolvedBy: 'resolved_by',
+    resolvedAt: 'resolved_at',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+  },
+  serviceRequestPhotos: {
+    id: 'id',
+    serviceRequestId: 'service_request_id',
+    fileUri: 'file_uri',
+    fileName: 'file_name',
+    fileSize: 'file_size',
     createdAt: 'created_at',
   },
 } as const;

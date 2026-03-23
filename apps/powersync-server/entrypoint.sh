@@ -116,7 +116,7 @@ client_auth:
         k: ${JWT_KEY_B64URL}
         alg: HS256
   audience: ["powersync", "powersync-dev"]
-  issuer: https://sitemap.yourdomain.com
+  issuer: ${PROD_API_URL:-https://sitemap.live}
 
 telemetry:
   disable_telemetry_sharing: true

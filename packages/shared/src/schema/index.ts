@@ -18,3 +18,4 @@ export * from './list-item-photos';
 export * from './push-devices';
 export * from './user-facilities';
 export * from './teammates';
+export * from './service-requests';

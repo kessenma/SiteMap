@@ -1,0 +1,16 @@
+{
+  "name": "sitemap-devtools",
+  "version": "1.0.0",
+  "description": "Local SQLite browser for the SiteMap mobile app",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "install-and-start": "npm install && node server.mjs",
+    "kill": "pkill -f 'node server.mjs'",
+    "mcp": "node mcp-server.mjs"
+  },
+  "_note": "Use 'npm install' (not pnpm) — pnpm routes installs to the workspace root.",
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  }
+}

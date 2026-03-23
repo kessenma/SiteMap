@@ -3,7 +3,7 @@ import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Trash2, Pencil } from 'lucide-react'
-import { PATH_COLORS } from './map-constants'
+import { PATH_COLORS, PATH_WIDTHS } from './map-constants'
 
 type MapPath = {
   id: string
@@ -17,10 +17,12 @@ export function PathDetailPanel({
   path,
   onUpdate,
   onDelete,
+  onPreview,
 }: {
   path: MapPath
   onUpdate: (pathId: string, data: { label: string; color: string; strokeWidth: number }) => void
   onDelete: (pathId: string) => void
+  onPreview?: (overrides: { color: string; strokeWidth: number } | null) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [label, setLabel] = useState(path.label)
@@ -50,23 +52,30 @@ export function PathDetailPanel({
                   backgroundColor: c,
                   borderColor: c === color ? '#000' : '#d1d5db',
                 }}
-                onClick={() => setColor(c)}
+                onClick={() => { setColor(c); onPreview?.({ color: c, strokeWidth }) }}
               />
             ))}
           </div>
         </div>
         <div>
           <Label className="text-xs">Thickness</Label>
-          <div className="flex gap-2 mt-1">
-            {[1, 2, 4, 6].map((w) => (
+          <div className="flex gap-1.5 mt-1">
+            {PATH_WIDTHS.map((w) => (
               <button
                 key={w}
                 type="button"
-                className="flex items-center justify-center h-6 w-10 rounded border text-xs"
+                className="flex items-center justify-center h-6 w-8 rounded border"
                 style={{ borderColor: w === strokeWidth ? '#3B82F6' : '#d1d5db' }}
-                onClick={() => setStrokeWidth(w)}
+                onClick={() => { setStrokeWidth(w); onPreview?.({ color, strokeWidth: w }) }}
               >
-                {w}px
+                <span
+                  className="rounded-full"
+                  style={{
+                    width: `${Math.max(w, 2)}px`,
+                    height: `${Math.max(w, 2)}px`,
+                    backgroundColor: color,
+                  }}
+                />
               </button>
             ))}
           </div>
@@ -76,6 +85,7 @@ export function PathDetailPanel({
             size="sm"
             className="h-7 text-xs"
             onClick={() => {
+              onPreview?.(null)
               onUpdate(path.id, { label, color, strokeWidth })
               setEditing(false)
             }}
@@ -86,7 +96,7 @@ export function PathDetailPanel({
             variant="outline"
             size="sm"
             className="h-7 text-xs"
-            onClick={() => setEditing(false)}
+            onClick={() => { onPreview?.(null); setEditing(false) }}
           >
             Cancel
           </Button>

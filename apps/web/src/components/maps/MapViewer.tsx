@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, memo } from 'react'
 import { FileText } from 'lucide-react'
 import { MARKER_SIZES } from './map-constants'
 import type { MapMode } from './map-constants'
@@ -180,15 +180,18 @@ function CommentPin({
   comment,
   isSelected,
   onSelect,
+  pingKey,
 }: {
   comment: MapComment
   isSelected: boolean
   onSelect: (comment: MapComment) => void
+  pingKey?: number
 }) {
   const isResolved = !!comment.resolvedAt
+  const s = 1.8 // scale factor
   return (
     <g
-      transform={`translate(${comment.x}, ${comment.y})`}
+      transform={`translate(${comment.x}, ${comment.y}) scale(${s})`}
       onClick={(e) => {
         e.stopPropagation()
         onSelect(comment)
@@ -196,6 +199,23 @@ function CommentPin({
       className="cursor-pointer"
       opacity={isResolved ? 0.5 : 1}
     >
+      {/* Ping ring on selection */}
+      {isSelected && (
+        <circle
+          key={pingKey}
+          cy={-6}
+          r={6}
+          fill="none"
+          stroke="#3B82F6"
+          className="comment-ping-ring"
+        />
+      )}
+      {/* Drop shadow */}
+      <path
+        d="M0,-16 C-8,-16 -12,-10 -12,-6 C-12,2 0,12 0,12 C0,12 12,2 12,-6 C12,-10 8,-16 0,-16Z"
+        fill="rgba(0,0,0,0.2)"
+        transform="translate(1,1)"
+      />
       {/* Pin shape */}
       <path
         d="M0,-16 C-8,-16 -12,-10 -12,-6 C-12,2 0,12 0,12 C0,12 12,2 12,-6 C12,-10 8,-16 0,-16Z"
@@ -275,7 +295,7 @@ function getSvgPoint(svg: SVGSVGElement, e: React.MouseEvent): { x: number; y: n
 
 // ── MapViewer ─────────────────────────────────────────────────────────
 
-export function MapViewer({
+export const MapViewer = memo(function MapViewer({
   signedUrl,
   fileType,
   width,
@@ -296,6 +316,7 @@ export function MapViewer({
   selectedPathId,
   onPathSelect,
   onPathDraw,
+  pendingPath,
   // List items
   listItems = [],
   selectedListItemId,
@@ -318,12 +339,29 @@ export function MapViewer({
   selectedPathId?: string | null
   onPathSelect?: (pathId: string | null) => void
   onPathDraw?: (points: { x: number; y: number }[]) => void
+  pendingPath?: { points: { x: number; y: number }[]; color: string; strokeWidth: number } | null
   listItems?: MapListItem[]
   selectedListItemId?: string | null
   onListItemSelect?: (item: MapListItem | null) => void
 }) {
   const svgRef = useRef<SVGSVGElement>(null)
   const keyMap = new Map(keys.map((k) => [k.id, k]))
+
+  // Animation keys — increment to replay CSS animations on re-selection
+  const commentPingRef = useRef(0)
+  const pathFlashRef = useRef(0)
+  const prevCommentId = useRef(selectedCommentId)
+  const prevPathId = useRef(selectedPathId)
+
+  if (selectedCommentId && selectedCommentId !== prevCommentId.current) {
+    commentPingRef.current++
+  }
+  prevCommentId.current = selectedCommentId
+
+  if (selectedPathId && selectedPathId !== prevPathId.current) {
+    pathFlashRef.current++
+  }
+  prevPathId.current = selectedPathId
 
   // Path drawing state
   const [drawingPoints, setDrawingPoints] = useState<{ x: number; y: number }[]>([])
@@ -433,7 +471,22 @@ export function MapViewer({
           paths={paths}
           selectedPathId={selectedPathId}
           onSelect={onPathSelect}
+          flashKey={pathFlashRef.current}
         />
+
+        {/* Pending path preview (shown while editing before save) */}
+        {pendingPath && pendingPath.points.length > 1 && (
+          <polyline
+            points={pendingPath.points.map((p) => `${p.x},${p.y}`).join(' ')}
+            fill="none"
+            stroke={pendingPath.color}
+            strokeWidth={pendingPath.strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.9}
+            className="pointer-events-none"
+          />
+        )}
 
         {/* Live drawing path */}
         {isDrawing && drawingPoints.length > 1 && (
@@ -482,10 +535,11 @@ export function MapViewer({
               comment={comment}
               isSelected={selectedCommentId === comment.id}
               onSelect={(c) => onCommentSelect?.(c)}
+              pingKey={commentPingRef.current}
             />
           ))}
         </g>
       </svg>
     </div>
   )
-}
+})

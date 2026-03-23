@@ -29,6 +29,13 @@
       "when": 1774223270985,
       "tag": "0003_public_marvel_boy",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774226251414,
+      "tag": "0004_gorgeous_scarlet_spider",
+      "breakpoints": true
     }
   ]
 }

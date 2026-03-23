@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Image,
@@ -9,10 +9,12 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import GorhomBottomSheet from '@gorhom/bottom-sheet';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { Camera, Building2, Plus, X, UserPlus, Users, Pencil } from 'lucide-react-native';
+import { Camera, Building2, Plus, X, UserPlus, Users, Pencil, RefreshCw } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { SyncStatusSheet } from '../components/SyncStatusSheet';
 import { ScreenContainer } from '../components/ui/ScreenContainer';
 import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -37,6 +39,7 @@ type UserFacilityWithDetails = UserFacilityRecord & {
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { user, logout } = useAuth();
+  const syncSheetRef = useRef<GorhomBottomSheet>(null);
 
   const { data: [profile] = [], refresh: refreshProfile } = usePowerSyncQuery<UserRecord>(
     'SELECT * FROM users WHERE id = ?',
@@ -77,32 +80,46 @@ export default function ProfileScreen() {
   if (!user) return null;
 
   return (
-    <ScreenContainer scrollable contentStyle={styles.container}>
-      <ProfileCard
-        profile={profile}
-        userId={user.id}
-        onUpdated={refreshProfile}
-      />
+    <>
+      <ScreenContainer scrollable contentStyle={styles.container}>
+        <ProfileCard
+          profile={profile}
+          userId={user.id}
+          onUpdated={refreshProfile}
+        />
 
-      <FacilitiesSection
-        userId={user.id}
-        userFacilities={userFacilities}
-        allFacilities={allFacilities}
-        onChanged={refreshFacilities}
-      />
+        <FacilitiesSection
+          userId={user.id}
+          userFacilities={userFacilities}
+          allFacilities={allFacilities}
+          onChanged={refreshFacilities}
+        />
 
-      <TeammatesSection
-        userId={user.id}
-        teammates={teammates}
-        onChanged={refreshAll}
-      />
+        <TeammatesSection
+          userId={user.id}
+          teammates={teammates}
+          onChanged={refreshAll}
+        />
 
-      <View style={styles.signOutContainer}>
-        <Button variant="outline" onPress={logout}>
-          Sign Out
-        </Button>
-      </View>
-    </ScreenContainer>
+        <View style={styles.signOutContainer}>
+          <Button
+            variant="outline"
+            onPress={() => syncSheetRef.current?.snapToIndex(0)}
+            style={{ marginBottom: 12 }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <RefreshCw color={colors.primary} size={16} />
+              <Body style={{ color: colors.primary, fontWeight: '600' }}>Data Sync Status</Body>
+            </View>
+          </Button>
+          <Button variant="outline" onPress={logout}>
+            Sign Out
+          </Button>
+        </View>
+      </ScreenContainer>
+
+      <SyncStatusSheet sheetRef={syncSheetRef} />
+    </>
   );
 }
 

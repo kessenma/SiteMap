@@ -60,3 +60,5 @@ streams:
       - SELECT * FROM map_lists
       - SELECT * FROM map_list_items
       - SELECT * FROM list_item_photos
+      - SELECT * FROM service_requests
+      - SELECT * FROM service_request_photos
